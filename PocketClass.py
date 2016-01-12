@@ -11,6 +11,7 @@ class OnePocket:
     def __init__(self, name, currency, balance=0):
         self.name = name
         self.currency = currency
+        self.balance = 0
         self.set_balance(balance)
 
     def set_balance(self, balance):
@@ -31,6 +32,7 @@ class OneCredit:
         self.name = name
         self.currency = currency
         self.contact = contact
+        self.balance = balance
         self.set_balance(balance)
 
     def set_balance(self, balance):
@@ -42,7 +44,10 @@ class OneCredit:
 
     def get_info(self):
         # вывод информации в виде строки
-        return "%s (%s): %s %s" % (self.name, self.contact, self.balance, self.currency)
+        return "%s (%s): %s %s" % (self.name,
+                                   self.contact,
+                                   self.balance,
+                                   self.currency)
 
 
 class Pockets:
@@ -104,56 +109,128 @@ class Pockets:
         cur = con.cursor()
         cur.executescript("""
             DROP TABLE IF EXISTS Pocket;
+--кошельки
             CREATE TABLE Pocket(Name TEXT, Currency TEXT);
+--остатки
             DROP TABLE IF EXISTS Balance;
             CREATE TABLE Balance(Pocket TEXT, Balance FLOAT);
+--остатки по долгам
             DROP TABLE IF EXISTS CreditBalance;
-            CREATE TABLE CreditBalance(CreditName TEXT, Balance FLOAT);
+            CREATE TABLE CreditBalance(CreditName TEXT,
+                                       Balance FLOAT);
+--статьи расходов
             DROP TABLE IF EXISTS OutItems;
             CREATE TABLE OutItems(Item TEXT);
+--статьи доходов
             DROP TABLE IF EXISTS InItems;
             CREATE TABLE InItems(Item TEXT);
+--контакты
             DROP TABLE IF EXISTS Contacts;
             CREATE TABLE Contacts(ContactName TEXT);
+--кредиты
             DROP TABLE IF EXISTS Credits;
-            CREATE TABLE Credits(CreditName TEXT, ContactName TEXT, Currency TEXT);
-            CREATE TABLE IF NOT EXISTS Actions(Id INT, DateTime TEXT, Action_name INT, ActionId INT);
-            CREATE TABLE IF NOT EXISTS InAction(
-                Id INT, Action_name INT, Pocket TEXT, Item TEXT, Sum FLOAT, Amount FLOAT, Comment TEXT);
-            CREATE TABLE IF NOT EXISTS OutAction(
-                Id INT, Action_name INT, Pocket TEXT, Item TEXT, Sum FLOAT, Amount FLOAT, Comment TEXT);
-            CREATE TABLE IF NOT EXISTS BetweenAction(
-                Id INT, Action_name INT, PocketOut TEXT, PocketIn TEXT, Sum FLOAT, Comment TEXT);
-            CREATE TABLE IF NOT EXISTS ExchangeAction(
-                Id INT, Action_name INT, PocketOut TEXT, PocketIn TEXT, SumOut FLOAT, SumIn FLOAT, Comment TEXT);
-            CREATE TABLE IF NOT EXISTS СreditInAction(
-                Id INT, Action_name INT, Pocket TEXT, CreditName TEXT, Sum FLOAT, Comment TEXT);
+            CREATE TABLE Credits(CreditName TEXT,
+                                 ContactName TEXT,
+                                 Currency TEXT);
+--последовательность
+            CREATE TABLE IF NOT EXISTS Actions(Id INT,
+                                               DateTime TEXT,
+                                               Action_name INT,
+                                               ActionId INT);
+--доходы
+            CREATE TABLE IF NOT EXISTS InAction(Id INT,
+                                                Action_name INT,
+                                                Pocket TEXT,
+                                                Item TEXT,
+                                                Sum FLOAT,
+                                                Amount FLOAT,
+                                                Comment TEXT);
+--расходы
+            CREATE TABLE IF NOT EXISTS OutAction(Id INT,
+                                                 Action_name INT,
+                                                 Pocket TEXT,
+                                                 Item TEXT,
+                                                 Sum FLOAT,
+                                                 Amount FLOAT,
+                                                 Comment TEXT);
+--перемещения
+            CREATE TABLE IF NOT EXISTS BetweenAction(Id INT,
+                                                     Action_name INT,
+                                                     PocketOut TEXT,
+                                                     PocketIn TEXT,
+                                                     Sum FLOAT,
+                                                     Comment TEXT);
+--обмен валют
+            CREATE TABLE IF NOT EXISTS ExchangeAction(Id INT,
+                                                      Action_name INT,
+                                                      PocketOut TEXT,
+                                                      PocketIn TEXT,
+                                                      SumOut FLOAT,
+                                                      SumIn FLOAT,
+                                                      Comment TEXT);
+--мы взяли в долг
+            CREATE TABLE IF NOT EXISTS Сredit1InAction(Id INT,
+                                                       Action_name INT,
+                                                       Pocket TEXT,
+                                                       CreditName TEXT,
+                                                       Sum FLOAT,
+                                                       Comment TEXT);
+--мы вернули долг
+            CREATE TABLE IF NOT EXISTS Сredit1OutAction(Id INT,
+                                                        Action_name INT,
+                                                        Pocket TEXT,
+                                                        CreditName TEXT,
+                                                        Sum FLOAT,
+                                                        Comment TEXT);
+--нам вернули долг
+            CREATE TABLE IF NOT EXISTS Сredit2InAction(Id INT,
+                                                       Action_name INT,
+                                                       Pocket TEXT,
+                                                       CreditName TEXT,
+                                                       Sum FLOAT,
+                                                       Comment TEXT);
+--мы дали в долг
+            CREATE TABLE IF NOT EXISTS Сredit2OutAction(Id INT,
+                                                        Action_name INT,
+                                                        Pocket TEXT,
+                                                        CreditName TEXT,
+                                                        Sum FLOAT,
+                                                        Comment TEXT);
             """)
         for pocket in self.pockets:
-            cur.execute("INSERT INTO Pocket(Name, Currency) VALUES (?, ?)", (pocket.name, pocket.currency))
-            cur.execute("INSERT INTO Balance(Pocket, Balance) VALUES (?, ?)", (pocket.name, pocket.balance))
+            cur.execute("INSERT INTO Pocket VALUES (?, ?)",
+                        (pocket.name, pocket.currency)
+                       )
+            cur.execute("INSERT INTO Balance VALUES (?, ?)",
+                        (pocket.name, pocket.balance)
+                       )
         for x in self.out_items:
-            cur.execute("INSERT INTO OutItems(Item) VALUES (?)", (x,))
+            cur.execute("INSERT INTO OutItems VALUES (?)", (x,))
         for x in self.in_items:
-            cur.execute("INSERT INTO InItems(Item) VALUES (?)", (x,))
+            cur.execute("INSERT INTO InItems VALUES (?)", (x,))
         for x in self.contacts:
-            cur.execute("INSERT INTO Contacts(ContactName) VALUES (?)", (x,))
+            cur.execute("INSERT INTO Contacts VALUES (?)", (x,))
         for credit in self.credits:
-            cur.execute("INSERT INTO Credits(CreditName, ContactName, Currency) VALUES (?, ?, ?)", (credit.name, credit.contact, credit.currency))
-            cur.execute("INSERT INTO CreditBalance(CreditName, Balance) VALUES (?, ?)", (credit.name, credit.balance))
-
+            cur.execute("INSERT INTO Credits VALUES (?, ?, ?)",
+                        (credit.name, credit.contact, credit.currency)
+                       )
+            cur.execute("INSERT INTO CreditBalance VALUES (?, ?)",
+                        (credit.name, credit.balance)
+                       )
         con.commit()
         con.close()
 
     def fill_pockets(self):
         # Заполняем кошельки из базы данных
-        # TODO Подключение к базе данных, чтение инфы о кошельках и остатках в объект класса Pockets
+        # TODO Подключение к базе данных
+        # чтение инфы о кошельках и остатках в объект класса Pockets
         pass
 
     def fill_pockets_from_file(self):
         # Заполняем кошельки из файла
-        # TODO чтение инфы о кошельках и остатках в объект класса Pockets из файла/ов
         # формат файла "файл кошельков": название кошелька/валюта/баланс
+        # TODO чтение инфы о кошельках и остатках из файла/ов
+        # в объект класса Pockets
         import pickle
         myfile = file(r"файл кошельков") #todo правильный путь к файлу
         loadedlist = pickle.load(myfile)
