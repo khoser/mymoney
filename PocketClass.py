@@ -387,3 +387,6 @@ class Pockets:
         for i in loadedlist:
             self.add_pocket(*i.split("/"))
     """
+
+    # todo передача и получение данных посредством веб-сервиса
+    # todo хранение настроек
