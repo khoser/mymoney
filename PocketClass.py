@@ -295,13 +295,13 @@ class Pockets:
                 (pocket.name, pocket.balance)
         )
 
-    def action_in(self, pocket, item, sum, amount = 0, comment = ''):
+    def action_in(self, pocket, item, sum, amount = 0, comment=''):
         """
         доходы
         в кошелек по статье на сумму
         """
         action_name = 1
-        if (type(sum) != float) and (type(sum) != int):
+        if type(sum) != float and type(sum) != int:
             return 1
         pc = pocket
         if type(pocket) == str:
@@ -319,13 +319,13 @@ class Pockets:
         self.con.commit()
         return 0
 
-    def action_out(self, pocket, item, sum, amount = 0, comment = ''):
+    def action_out(self, pocket, item, sum, amount = 0, comment=''):
         """
         расходы
         из кошелька по статье на сумму за количество
         """
         action_name = 2
-        if (type(sum) != float) and (type(sum) != int):
+        if type(sum) != float and type(sum) != int:
             return 1
         pc = pocket
         if type(pocket) == str:
@@ -343,13 +343,13 @@ class Pockets:
         self.con.commit()
         return 0
 
-    def action_betwean(self, pocketout, pocketin, sum, comment = ''):
+    def action_between(self, pocketout, pocketin, sum, comment=''):
         """
-        расходы
-        из кошелька по статье на сумму за количество
+        перемещение
+        из кошелька в кошелек сумму
         """
         action_name = 3
-        if (type(sum) != float) and (type(sum) != int):
+        if type(sum) != float and type(sum) != int:
             return 1
         pcout = pocketout
         pcin = pocketin
@@ -372,7 +372,38 @@ class Pockets:
         self.con.commit()
         return 0
 
-    # todo операции перемещения и работы с долгами
+    def action_exchange(self, pocketout, pocketin, sumout, sumin, comment=''):
+        """
+        обмен валюты
+        из кошелька в кошелек сумма расхода, сумма прихода
+        """
+        action_name = 4
+        sumout_type = type(sumout) != float and type(sumout) != int
+        sumin_type = type(sumin) != float and type(sumin) != int
+        if sumout_type or sumin_type:
+            return 1
+        pcout = pocketout
+        pcin = pocketin
+        if (type(pocketout) == str) or (type(pocketin) == str):
+            for tpc in self.pockets:
+                if (tpc.name == pocketout):
+                    pcout = tpc
+                if (tpc.name == pocketin):
+                    pcin = tpc
+        pcout.balance -= sumout
+        pcin.balance += sumin
+        self.__upd_db_balance__(pcin)
+        self.__upd_db_balance__(pcout)
+        self.cur.execute(
+            "INSERT INTO ExchangeAction VALUES (NULL, ?, ?, ?, ?, ?, ?)",
+            (action_name, pcout.name, pcin.name, sumout, sumin, comment)
+        )
+        lid = self.cur.lastrowid
+        self.__add_db_action__(action_name, lid)
+        self.con.commit()
+        return 0
+
+    # todo операции работы с долгами
 
     # TODO если БД не прокатит, то чтение инфы о кошельках и остатках из файлов
     """
