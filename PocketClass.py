@@ -147,7 +147,7 @@ class Pockets:
                                                 Action_name INT,
                                                 Pocket VARCHAR(50),
                                                 Item VARCHAR(50),
-                                                Sum FLOAT,
+                                                Summ FLOAT,
                                                 Amount FLOAT,
                                                 Comment TEXT);
 --расходы 2
@@ -155,7 +155,7 @@ class Pockets:
                                                  Action_name INT,
                                                  Pocket VARCHAR(50),
                                                  Item VARCHAR(50),
-                                                 Sum FLOAT,
+                                                 Summ FLOAT,
                                                  Amount FLOAT,
                                                  Comment TEXT);
 --перемещения 3
@@ -163,43 +163,43 @@ class Pockets:
                                                      Action_name INT,
                                                      PocketOut VARCHAR(50),
                                                      PocketIn VARCHAR(50),
-                                                     Sum FLOAT,
+                                                     Summ FLOAT,
                                                      Comment TEXT);
 --обмен валют 4
             CREATE TABLE IF NOT EXISTS ExchangeAction(Id INT PRIMARY KEY,
                                                       Action_name INT,
                                                       PocketOut VARCHAR(50),
                                                       PocketIn VARCHAR(50),
-                                                      SumOut FLOAT,
-                                                      SumIn FLOAT,
+                                                      SummOut FLOAT,
+                                                      SummIn FLOAT,
                                                       Comment TEXT);
 --мы взяли в долг 5
             CREATE TABLE IF NOT EXISTS Сredit1InAction(Id INT PRIMARY KEY,
                                                        Action_name INT,
                                                        Pocket VARCHAR(50),
                                                        Credit VARCHAR(50),
-                                                       Sum FLOAT,
+                                                       Summ FLOAT,
                                                        Comment TEXT);
 --мы вернули долг 6
             CREATE TABLE IF NOT EXISTS Сredit1OutAction(Id INT PRIMARY KEY,
                                                         Action_name INT,
                                                         Pocket VARCHAR(50),
                                                         Credit VARCHAR(50),
-                                                        Sum FLOAT,
+                                                        Summ FLOAT,
                                                         Comment TEXT);
 --нам вернули долг 7
             CREATE TABLE IF NOT EXISTS Сredit2InAction(Id INT PRIMARY KEY,
                                                        Action_name INT,
                                                        Pocket VARCHAR(50),
                                                        Credit VARCHAR(50),
-                                                       Sum FLOAT,
+                                                       Summ FLOAT,
                                                        Comment TEXT);
 --мы дали в долг 8
             CREATE TABLE IF NOT EXISTS Сredit2OutAction(Id INT PRIMARY KEY,
                                                         Action_name INT,
                                                         Pocket VARCHAR(50),
                                                         Credit VARCHAR(50),
-                                                        Sum FLOAT,
+                                                        Summ FLOAT,
                                                         Comment TEXT);
             """)
         self.con.commit()
@@ -285,8 +285,8 @@ class Pockets:
         self.cur.execute(
                 """INSERT INTO Actions
                 VALUES (NULL, datetime('now', 'localtime'), ?, ?)
-                """
-                ,(action_name, action_id)
+                """,
+                (action_name, action_id)
         )
 
     def __upd_db_balance__(self, pocket):
@@ -295,115 +295,329 @@ class Pockets:
                 (pocket.name, pocket.balance)
         )
 
-    def action_in(self, pocket, item, sum, amount = 0, comment=''):
+    def __upd_db_credit_balance__(self, credit):
+        self.cur.execute(
+                "UPDATE CreditBalances SET Balance = ? WHERE Credit = ?",
+                (credit.name, credit.balance)
+        )
+
+    def action_in(self, pocket, item, summ, amount = 0, comment=''):
         """
         доходы
         в кошелек по статье на сумму
         """
         action_name = 1
-        if type(sum) != float and type(sum) != int:
+        if type(summ) != float and type(summ) != int:
             return 1
-        pc = pocket
-        if type(pocket) == str:
+        allright = True
+        if isinstance(pocket, OnePocket):
+            pc = pocket
+        elif type(pocket) == str:
             for tpc in self.pockets:
                 if (tpc.name == pocket):
                     pc = tpc
-        pc.balance += sum
+                    break
+            else:
+                allright = False
+        if not allright:
+            return 1
+        pc.balance += summ
         self.__upd_db_balance__(pc)
         self.cur.execute(
             "INSERT INTO InAction VALUES (NULL, ?, ?, ?, ?, ?, ?)",
-            (action_name, pc.name, item, sum, amount, comment)
+            (action_name, pc.name, item, summ, amount, comment)
         )
         lid = self.cur.lastrowid
         self.__add_db_action__(action_name, lid)
         self.con.commit()
         return 0
 
-    def action_out(self, pocket, item, sum, amount = 0, comment=''):
+    def action_out(self, pocket, item, summ, amount = 0, comment=''):
         """
         расходы
         из кошелька по статье на сумму за количество
         """
         action_name = 2
-        if type(sum) != float and type(sum) != int:
+        if type(summ) != float and type(summ) != int:
             return 1
-        pc = pocket
-        if type(pocket) == str:
+        allright = True
+        if isinstance(pocket, OnePocket):
+            pc = pocket
+        elif type(pocket) == str:
             for tpc in self.pockets:
                 if (tpc.name == pocket):
                     pc = tpc
-        pc.balance -= sum
+                    break
+            else:
+                allright = False
+        if not allright:
+            return 1
+        pc.balance -= summ
         self.__upd_db_balance__(pc)
         self.cur.execute(
             "INSERT INTO OutAction VALUES (NULL, ?, ?, ?, ?, ?, ?)",
-            (action_name, pc.name, item, sum, amount, comment)
+            (action_name, pc.name, item, summ, amount, comment)
         )
         lid = self.cur.lastrowid
         self.__add_db_action__(action_name, lid)
         self.con.commit()
         return 0
 
-    def action_between(self, pocketout, pocketin, sum, comment=''):
+    def action_between(self, pocketout, pocketin, summ, comment=''):
         """
         перемещение
         из кошелька в кошелек сумму
         """
         action_name = 3
-        if type(sum) != float and type(sum) != int:
+        if type(summ) != float and type(summ) != int:
             return 1
-        pcout = pocketout
-        pcin = pocketin
-        if (type(pocketout) == str) or (type(pocketin) == str):
+        allright = True
+        if isinstance(pocketout, OnePocket):
+            pcout = pocketout
+        elif type(pocketout) == str:
             for tpc in self.pockets:
-                if (tpc.name == pocketout):
+                if tpc.name == pocketout:
                     pcout = tpc
+                    break
+            else:
+                allright = False
+        if isinstance(pocketin, OnePocket):
+            pcin = pocketin
+        elif type(pocketin) == str:
+            for tpc in self.pockets:
                 if (tpc.name == pocketin):
                     pcin = tpc
-        pcout.balance -= sum
-        pcin.balance += sum
+                    break
+            else:
+                allright = False
+        if not allright:
+            return 1
+        pcout.balance -= summ
+        pcin.balance += summ
         self.__upd_db_balance__(pcin)
         self.__upd_db_balance__(pcout)
         self.cur.execute(
             "INSERT INTO BetweenAction VALUES (NULL, ?, ?, ?, ?, ?)",
-            (action_name, pcout.name, pcin.name, sum, comment)
+            (action_name, pcout.name, pcin.name, summ, comment)
         )
         lid = self.cur.lastrowid
         self.__add_db_action__(action_name, lid)
         self.con.commit()
         return 0
 
-    def action_exchange(self, pocketout, pocketin, sumout, sumin, comment=''):
+    def action_exchange(self, pocketout, pocketin, summout, summin, coment=''):
         """
         обмен валюты
         из кошелька в кошелек сумма расхода, сумма прихода
         """
         action_name = 4
-        sumout_type = type(sumout) != float and type(sumout) != int
-        sumin_type = type(sumin) != float and type(sumin) != int
-        if sumout_type or sumin_type:
+        summout_type = type(summout) != float and type(summout) != int
+        summin_type = type(summin) != float and type(summin) != int
+        if summout_type or summin_type:
             return 1
-        pcout = pocketout
-        pcin = pocketin
-        if (type(pocketout) == str) or (type(pocketin) == str):
+        allright = True
+        if isinstance(pocketin, OnePocket):
+            pcin = pocketin
+        elif type(pocketin) == str:
             for tpc in self.pockets:
-                if (tpc.name == pocketout):
-                    pcout = tpc
                 if (tpc.name == pocketin):
                     pcin = tpc
-        pcout.balance -= sumout
-        pcin.balance += sumin
+                    break
+            else:
+                allright = False
+        if isinstance(pocketout, OnePocket):
+            pcout = pocketout
+        elif type(pocketout) == str:
+            for tpc in self.pockets:
+                if tpc.name == pocketout:
+                    pcout = tpc
+                    break
+            else:
+                allright = False
+        if not allright:
+            return 1
+        pcout.balance -= summout
+        pcin.balance += summin
         self.__upd_db_balance__(pcin)
         self.__upd_db_balance__(pcout)
         self.cur.execute(
             "INSERT INTO ExchangeAction VALUES (NULL, ?, ?, ?, ?, ?, ?)",
-            (action_name, pcout.name, pcin.name, sumout, sumin, comment)
+            (action_name, pcout.name, pcin.name, summout, summin, coment)
         )
         lid = self.cur.lastrowid
         self.__add_db_action__(action_name, lid)
         self.con.commit()
         return 0
 
-    # todo операции работы с долгами
+    def action_credit1_in(self, pocket, credit, summ, comment=''):
+        """
+        мы взяли в долг
+        в кошелек по кредиту у контакта сумму
+        """
+        action_name = 5
+        if summ != float and type(summ) != int:
+            return 1
+        allright = True
+        if isinstance(pocket, OnePocket):
+            pc = pocket
+        elif type(pocket) == str:
+            for tpc in self.pockets:
+                if (tpc.name == pocket):
+                    pc = tpc
+                    break
+            else:
+                allright = False
+        if isinstance(credit, OneCredit):
+            cr = credit
+        elif (type(credit) == str):
+            for tcr in self.credits:
+                if (tcr.name == credit):
+                    cr = tcr
+                    break
+            else:
+                allright = False
+        if not allright:
+            return 1
+        cr.balance -= summ
+        pc.balance += summ
+        self.__upd_db_balance__(pc)
+        self.__upd_db_credit_balance__(cr)
+        self.cur.execute(
+            "INSERT INTO Сredit1InAction VALUES (NULL, ?, ?, ?, ?, ?)",
+            (action_name, pc.name, cr.name, summ, comment)
+        )
+        lid = self.cur.lastrowid
+        self.__add_db_action__(action_name, lid)
+        self.con.commit()
+        return 0
+
+    def action_credit1_out(self, pocket, credit, summ, comment=''):
+        """
+        мы вернули долг
+        из кошелька по кредиту контакту сумму
+        """
+        action_name = 6
+        if summ != float and type(summ) != int:
+            return 1
+        allright = True
+        if isinstance(pocket, OnePocket):
+            pc = pocket
+        elif type(pocket) == str:
+            for tpc in self.pockets:
+                if (tpc.name == pocket):
+                    pc = tpc
+                    break
+            else:
+                allright = False
+        if isinstance(credit, OneCredit):
+            cr = credit
+        elif type(credit) == str:
+            for tcr in self.credits:
+                if tcr.name == credit:
+                    cr = tcr
+                    break
+            else:
+                allright = False
+        if not allright:
+            return 1
+        cr.balance += summ
+        pc.balance -= summ
+        self.__upd_db_balance__(pc)
+        self.__upd_db_credit_balance__(cr)
+        self.cur.execute(
+            "INSERT INTO Сredit1OutAction VALUES (NULL, ?, ?, ?, ?, ?)",
+            (action_name, pc.name, cr.name, summ, comment)
+        )
+        lid = self.cur.lastrowid
+        self.__add_db_action__(action_name, lid)
+        self.con.commit()
+        return 0
+
+    def action_credit2_in(self, pocket, credit, summ, comment=''):
+        """
+        нам вернули долг
+        в кошелек по кредиту от контакта сумму
+        """
+        action_name = 7
+        if summ != float and type(summ) != int:
+            return 1
+        allright = True
+        if isinstance(pocket, OnePocket):
+            pc = pocket
+        elif type(pocket) == str:
+            for tpc in self.pockets:
+                if (tpc.name == pocket):
+                    pc = tpc
+                    break
+            else:
+                allright = False
+        if isinstance(credit, OneCredit):
+            cr = credit
+        elif (type(credit) == str):
+            for tcr in self.credits:
+                if (tcr.name == credit):
+                    cr = tcr
+                    break
+            else:
+                allright = False
+        if not allright:
+            return 1
+        cr.balance -= summ
+        pc.balance += summ
+        self.__upd_db_balance__(pc)
+        self.__upd_db_credit_balance__(cr)
+        self.cur.execute(
+            "INSERT INTO Сredit2InAction VALUES (NULL, ?, ?, ?, ?, ?)",
+            (action_name, pc.name, cr.name, summ, comment)
+        )
+        lid = self.cur.lastrowid
+        self.__add_db_action__(action_name, lid)
+        self.con.commit()
+        return 0
+
+    def action_credit2_out(self, pocket, credit, summ, comment=''):
+        """
+        мы дали в долг
+        из кошелька по кредиту контакту сумму
+        """
+        action_name = 8
+        if summ != float and type(summ) != int:
+            return 1
+        allright = True
+        if isinstance(pocket, OnePocket):
+            pc = pocket
+        elif type(pocket) == str:
+            for tpc in self.pockets:
+                if (tpc.name == pocket):
+                    pc = tpc
+                    break
+            else:
+                allright = False
+        if isinstance(credit, OneCredit):
+            cr = credit
+        elif type(credit) == str:
+            for tcr in self.credits:
+                if tcr.name == credit:
+                    cr = tcr
+                    break
+            else:
+                allright = False
+        if not allright:
+            return 1
+        cr.balance += summ
+        pc.balance -= summ
+        self.__upd_db_balance__(pc)
+        self.__upd_db_credit_balance__(cr)
+        self.cur.execute(
+            "INSERT INTO Сredit2OutAction VALUES (NULL, ?, ?, ?, ?, ?)",
+            (action_name, pc.name, cr.name, summ, comment)
+        )
+        lid = self.cur.lastrowid
+        self.__add_db_action__(action_name, lid)
+        self.con.commit()
+        return 0
+
+    # todo передача и получение данных посредством веб-сервиса
 
     # TODO если БД не прокатит, то чтение инфы о кошельках и остатках из файлов
     """
@@ -419,5 +633,4 @@ class Pockets:
             self.add_pocket(*i.split("/"))
     """
 
-    # todo передача и получение данных посредством веб-сервиса
     # todo хранение настроек
