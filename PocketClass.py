@@ -253,7 +253,7 @@ class Pockets:
                            P.Currency,
                            B.Balance
                     FROM Pockets AS P
-                    LEFT JOIN Balance AS B ON B.Pocket = P.Name
+                    LEFT JOIN Balances AS B ON B.Pocket = P.Name
                     """)
         for row in self.cur:
             self.set_pocket(row[0],row[1],row[2])
