@@ -5,6 +5,25 @@
 Классы, описывающие кошельки и их поведение
 """
 import sqlite3
+from suds import WebFault
+from suds.client import Client
+
+
+SOAP_ACTION = "http://money.kter.ru#kter_ru:Android"
+SOAP_METHOD_NAME = "Android"
+defaultURL = "http://myhost/money/ws/ws1.1cws"
+NAMESPACE = "http://money.kter.ru"
+SOAP_ACTION2 = "http://money.kter.ru#kter_ru:Android_out1"
+SOAP_METHOD_NAME2 = "Android_out1"
+SOAP_ACTION3 = "http://money.kter.ru#kter_ru:Android_out2"
+SOAP_METHOD_NAME3 = "Android_out2"
+SOAP_ACTION4 = "http://money.kter.ru#kter_ru:Android_out3"
+SOAP_METHOD_NAME4 = "Android_out3"
+SOAP_property_actions = "actions"
+SOAP_property_what = "what"
+SOAP_property_param = "param"
+SOAP_Auth = "Authorization"
+
 
 class OnePocket:
     """Один кошелек со своей волютой и баллансом"""
@@ -618,6 +637,68 @@ class Pockets:
         return 0
 
     # todo передача и получение данных посредством веб-сервиса
+    def Get_Soap_Service_Data(self, remote_param=''):
+        """функция получает от сервиса 1С (веб-сервиса) данные
+
+        :param remote_param:
+            строка с числовым значением
+                1: кошельки
+                2: статьи дохода
+                3: статьи расхода
+                4: остатки
+                пусто, если данные для нового функционала
+        :return: -1 в случае неудачного запроса к сервису, иначе 0.
+        """
+        rslt = 0
+        client = Client("http://money.kter.ru/money/ws/ws1.1cws?wsdl", username = 'ktu', password = '2132644')
+        data = client.service[0].Android_out2()
+
+        SoapObject Request = new SoapObject(NAMESPACE, SOAP_METHOD_NAME2);
+
+        // here you form body of your SOAP-request
+        Request.addProperty(MainContext.getString(R.string.SOAP_property_what), remote_param);
+
+        SoapSerializationEnvelope soapEnvelope = new SoapSerializationEnvelope(SoapEnvelope.VER11);
+        //soapEnvelope.dotNet = true;
+
+        soapEnvelope.setAddAdornments(false);
+        soapEnvelope.encodingStyle = SoapSerializationEnvelope.ENC;
+        soapEnvelope.env = SoapSerializationEnvelope.ENV;
+        soapEnvelope.implicitTypes = true;
+
+
+        List<HeaderProperty> headerPropertyList = new ArrayList<HeaderProperty>();
+        headerPropertyList.add(new HeaderProperty(MainContext.getString(R.string.SOAP_Auth), Form_Header()));
+
+        soapEnvelope.setOutputSoapObject(Request);
+
+        HttpTransportSE aht = new HttpTransportSE(URL); // перед вызовом URL обязательно он должен быть задан. а задается он функцией Form_Header()
+//        aht.debug = true;
+
+        try {
+            aht.call(SOAP_ACTION2, soapEnvelope, headerPropertyList);
+            SoapPrimitive resultString = (SoapPrimitive) soapEnvelope.getResponse();
+
+            switch (remote_param) {
+                case 1:
+                    writeDataFile(resultString.getValue().toString(), MainContext.getString(R.string.FileName_purses));
+                    break;
+                case 2:
+                    writeDataFile(resultString.getValue().toString(), MainContext.getString(R.string.FileName_initems));
+                    break;
+                case 3:
+                    writeDataFile(resultString.getValue().toString(), MainContext.getString(R.string.FileName_outitems));
+                    break;
+                case 4:
+                    writeDataFile(resultString.getValue().toString(), MainContext.getString(R.string.FileName_pursesbalances));
+                    break;
+            }
+
+        } catch (Exception e) {
+            rslt = -1;
+        }
+        return rslt;
+    }
 
     # TODO если БД не прокатит, то чтение инфы о кошельках и остатках из файлов
     """
