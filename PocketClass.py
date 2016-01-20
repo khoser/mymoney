@@ -82,6 +82,16 @@ class Pockets:
         self.credits = []
         self.con = sqlite3.connect(db_name)
         self.cur = self.con.cursor()
+        self.actions_names = {
+            1: 'In',
+            2: 'Out',
+            3: 'Betwean',
+            4: 'Exchange',
+            5: 'Сredit1In',
+            6: 'Сredit1Out',
+            7: 'Сredit2Out',
+            8: 'Сredit2Iut',
+        }
 
     def close_db(self):
         """
@@ -90,7 +100,7 @@ class Pockets:
         """
         self.con.close()
 
-    def set_pocket(self, name, currency, balance=0):
+    def set_pocket(self, name, currency='', balance=0):
         # добавление еще одного кошелька в список
         # или обновление баланса существующего кошелька
         exist = False
@@ -133,7 +143,8 @@ class Pockets:
         вызывается только? при синхронизации и первичной инициации объекта
         """
         self.cur.executescript("""
-            DROP TABLE IF EXISTS Settings;
+            DROP
+                TABLE IF EXISTS Settings;
             CREATE TABLE Settings(OwnerName VARCHAR(50),
                                   Url_wsdl VARCHAR(300),
                                   Login VARCHAR(50),
@@ -274,7 +285,8 @@ class Pockets:
         """
         # кошельки:
         self.cur.executescript("""
-                    SELECT P.Name,
+                    SELECT
+                           P.Name,
                            P.Currency,
                            B.Balance
                     FROM Pockets AS P
@@ -296,7 +308,8 @@ class Pockets:
             self.contacts.append(row[0])
         # кредиты:
         self.cur.executescript("""
-                    SELECT C.Name,
+                    SELECT
+                           C.Name,
                            C.Currency,
                            C.Contact,
                            B.Balance
@@ -663,77 +676,167 @@ class Pockets:
 
     def soap_service(self):
         URL, log_pass = self.get_setiings()
-        client = Client(URL,
-                        username = log_pass[0],
-                        password = base64.standard_b64decode(log_pass[1]))
+        try:
+            client = Client(URL,
+                            username = log_pass[0],
+                            password = base64.standard_b64decode(log_pass[1]))
+        except WebFault:
+            return -1
         return client.service[0]
 
-    def get_soap_data(self, remote_param=''):
+    def get_all_soap_data(self):
         """функция получает от сервиса 1С (веб-сервиса) данные
 
-        :param remote_param:
-            строка с числовым значением
-                1: кошельки
-                2: статьи дохода
-                3: статьи расхода
-                4: остатки
-                пусто, если данные для нового функционала
         :return: -1 в случае неудачного запроса к сервису, иначе 0.
         """
-        rslt = 0
+        remote_functions = self.soap_service()
+        if remote_functions == -1:
+            return -1
+        try:
+            self.in_items = remote_functions.from1c2py('in_items')
+            self.out_items = remote_functions.from1c2py('out_items')
+            for pocket_data in remote_functions.from1c2py('pockets'):
+                self.set_pocket(*pocket_data)
+            self.contacts = remote_functions.from1c2py('contacts')
+            for credit_data in remote_functions.from1c2py('credits'):
+                self.set_credit(*credit_data)
+        except WebFault:
+            return -1
+        return 0
 
-        data = self.soap_service().Android_out2()
+    def prepare_send_data(self):
+        """функция передает данные сервису 1С (веб-сервису)
 
+        :return: -1 в случае неудачного запроса к сервису, иначе 0.
+        """
+        # готовим данные для отправки
+        self.cur.executescript("""
+            SELECT
+                A.Id,
+                A.DateTime,
+                A.Action_name,
+                B.Value1,
+                B.Value2,
+                B.Value3,
+                B.Value4,
+                B.Value5
+            FROM Actions AS A
+            LEFT JOIN (
+                SELECT
+                    InAction.Id AS Id,
+                    InAction.Action_name AS Action_name,
+                    InAction.Pocket AS Value1,
+                    InAction.Item AS Value2,
+                    cast(InAction.Summ as text) AS Value3,
+                    cast(InAction.Amount as text) AS Value4,
+                    InAction.Comment AS Value5
+                FROM InAction
+
+                UNION ALL
+
+                SELECT
+                    OutAction.Id AS Id,
+                    OutAction.Action_name AS Action_name,
+                    OutAction.Pocket AS Value1,
+                    OutAction.Item AS Value2,
+                    cast(OutAction.Summ as text) AS Value3,
+                    cast(OutAction.Amount as text) AS Value4,
+                    OutAction.Comment AS Value5
+                FROM OutAction
+
+                UNION ALL
+
+                SELECT
+                    BetweenAction.Id AS Id,
+                    BetweenAction.Action_name AS Action_name,
+                    BetweenAction.PocketOut AS Value1,
+                    BetweenAction.PocketIn AS Value2,
+                    cast(BetweenAction.Summ as text) AS Value3,
+                    BetweenAction.Comment AS Value4,
+                    '' AS Value5
+                FROM BetweenAction
+
+                UNION ALL
+
+                SELECT
+                    ExchangeAction.Id AS Id,
+                    ExchangeAction.Action_name AS Action_name,
+                    ExchangeAction.PocketOut AS Value1,
+                    ExchangeAction.PocketIn AS Value2,
+                    cast(ExchangeAction.SummOut as text) AS Value3,
+                    cast(ExchangeAction.SummIn as text) AS Value4,
+                    ExchangeAction.Comment AS Value5
+                FROM ExchangeAction
+
+                UNION ALL
+
+                SELECT
+                    Сredit1InAction.Id AS Id,
+                    Сredit1InAction.Action_name AS Action_name,
+                    Сredit1InAction.Pocket AS Value1,
+                    Сredit1InAction.Credit AS Value2,
+                    cast(Сredit1InAction.Summ as text) AS Value3,
+                    Сredit1InAction.Comment AS Value4,
+                    '' AS Value5
+                FROM Сredit1InAction
+
+                UNION ALL
+
+                SELECT
+                    Сredit1OutAction.Id AS Id,
+                    Сredit1OutAction.Action_name AS Action_name,
+                    Сredit1OutAction.Pocket AS Value1,
+                    Сredit1OutAction.Credit AS Value2,
+                    cast(Сredit1OutAction.Summ as text) AS Value3,
+                    Сredit1OutAction.Comment AS Value4,
+                    '' AS Value5
+                FROM Сredit1OutAction
+
+                UNION ALL
+
+                SELECT
+                    Сredit2InAction.Id AS Id,
+                    Сredit2InAction.Action_name AS Action_name,
+                    Сredit2InAction.Pocket AS Value1,
+                    Сredit2InAction.Credit AS Value2,
+                    cast(Сredit2InAction.Summ as text) AS Value3,
+                    Сredit2InAction.Comment AS Value4,
+                    '' AS Value5
+                FROM Сredit2InAction
+
+                SELECT
+                    Сredit2OutAction.Id AS Id,
+                    Сredit2OutAction.Action_name AS Action_name,
+                    Сredit2OutAction.Pocket AS Value1,
+                    Сredit2OutAction.Credit AS Value2,
+                    cast(Сredit2OutAction.Summ as text) AS Value3,
+                    Сredit2OutAction.Comment AS Value4,
+                    '' AS Value5
+                FROM Сredit2OutAction
+
+            ) AS B
+                ON A.Action_name = B.Action_name and A.ActionId = B.Id
+            ORDER BY A.Id
+            """)
+        data = []
+        for row in self.cur:
+            data.append(row[1:])
         return data
 
-        '''
-        SoapObject Request = new SoapObject(NAMESPACE, SOAP_METHOD_NAME2);
+    def send_soap_data(self):
+        """функция передает данные сервису 1С (веб-сервису)
 
-        // here you form body of your SOAP-request
-        Request.addProperty(MainContext.getString(R.string.SOAP_property_what), remote_param);
-
-        SoapSerializationEnvelope soapEnvelope = new SoapSerializationEnvelope(SoapEnvelope.VER11);
-        //soapEnvelope.dotNet = true;
-
-        soapEnvelope.setAddAdornments(false);
-        soapEnvelope.encodingStyle = SoapSerializationEnvelope.ENC;
-        soapEnvelope.env = SoapSerializationEnvelope.ENV;
-        soapEnvelope.implicitTypes = true;
-
-
-        List<HeaderProperty> headerPropertyList = new ArrayList<HeaderProperty>();
-        headerPropertyList.add(new HeaderProperty(MainContext.getString(R.string.SOAP_Auth), Form_Header()));
-
-        soapEnvelope.setOutputSoapObject(Request);
-
-        HttpTransportSE aht = new HttpTransportSE(URL); // перед вызовом URL обязательно он должен быть задан. а задается он функцией Form_Header()
-//        aht.debug = true;
-
-        try {
-            aht.call(SOAP_ACTION2, soapEnvelope, headerPropertyList);
-            SoapPrimitive resultString = (SoapPrimitive) soapEnvelope.getResponse();
-
-            switch (remote_param) {
-                case 1:
-                    writeDataFile(resultString.getValue().toString(), MainContext.getString(R.string.FileName_purses));
-                    break;
-                case 2:
-                    writeDataFile(resultString.getValue().toString(), MainContext.getString(R.string.FileName_initems));
-                    break;
-                case 3:
-                    writeDataFile(resultString.getValue().toString(), MainContext.getString(R.string.FileName_outitems));
-                    break;
-                case 4:
-                    writeDataFile(resultString.getValue().toString(), MainContext.getString(R.string.FileName_pursesbalances));
-                    break;
-            }
-
-        } catch (Exception e) {
-            rslt = -1;
-        }
-        return rslt;
-    }
-    '''
+        :return: -1 в случае неудачного запроса к сервису, иначе 0.
+        """
+        data = self.prepare_send_data()
+        remote_functions = self.soap_service()
+        if remote_functions == -1:
+            return -1
+        try:
+            remote_functions.frompy21c()
+        except WebFault:
+            return -1
+        return 0
 
     # TODO если БД не прокатит, то чтение инфы о кошельках и остатках из файлов
     """
