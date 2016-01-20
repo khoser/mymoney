@@ -678,8 +678,8 @@ class Pockets:
         URL, log_pass = self.get_setiings()
         try:
             client = Client(URL,
-                            username = log_pass[0],
-                            password = base64.standard_b64decode(log_pass[1]))
+                            username=log_pass[0],
+                            password=base64.standard_b64decode(log_pass[1]))
         except WebFault:
             return -1
         return client.service[0]
@@ -693,13 +693,13 @@ class Pockets:
         if remote_functions == -1:
             return -1
         try:
-            self.in_items = remote_functions.from1c2py('in_items')
-            self.out_items = remote_functions.from1c2py('out_items')
-            for pocket_data in remote_functions.from1c2py('pockets'):
-                self.set_pocket(*pocket_data)
-            self.contacts = remote_functions.from1c2py('contacts')
-            for credit_data in remote_functions.from1c2py('credits'):
-                self.set_credit(*credit_data)
+            self.in_items = remote_functions.from1c2py('in_items').data
+            self.out_items = remote_functions.from1c2py('out_items').data
+            for pocket_data in remote_functions.from1c2py('pockets').data:
+                self.set_pocket(*pocket_data.data)
+            self.contacts = remote_functions.from1c2py('contacts').data
+            for credit_data in remote_functions.from1c2py('credits').data:
+                self.set_credit(*credit_data.data)
         except WebFault:
             return -1
         return 0
