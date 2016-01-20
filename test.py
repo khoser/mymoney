@@ -13,7 +13,7 @@ pcs = PocketClass.Pockets('MyPythonMoney.db')
 pcs.create_db()
 pcs.set_settings('http://money.kter.ru/money/ws/ws1.1cws?wsdl',
                  'ktu',
-                 'MjEzMjY0NA==', True)
+                 '', True)
 print "\ninit:\n" + pcs.get_info()
 print pcs.get_all_soap_data()
 print "\nget data:\n" + pcs.get_info()
