@@ -644,25 +644,31 @@ class Pockets:
 
     # хранение настроек
 
-    def set_setiings(self, owner_name, url_wsdl, login, password):
-        self.cur.execute(
-            "INSERT INTO Settings VALUES (?, ?, ?, ?)",
-            (owner_name, url_wsdl, login, base64.standard_b64encode(password))
-        )
+    def set_settings(self, url_wsdl, login, password, pass_in_64=False):
+        if pass_in_64:
+            pass_value = password
+        else:
+            pass_value = base64.standard_b64encode(password)
+        self.cur.execute("INSERT INTO Settings VALUES (?, ?, ?, ?)",
+                         (1, url_wsdl, login, pass_value))
         self.con.commit()
 
-    def get_setiings(self, owner_name):
-        self.cur.execute(
-            "SELECT * FROM Settings Where OwnerName LIKE ?",(owner_name)
-        )
-        if len(self.cur) == 0:
-            return 1
-        row = self.cur[0]
-        return row[0], (row[1], row[2])
+    def get_setiings(self):
+        self.cur.execute("SELECT * FROM Settings")
+        for row in self.cur:
+            return row[1], (row[2], row[3])
+        return 1
 
     # todo передача и получение данных посредством веб-сервиса
 
-    def Get_Soap_Service_Data(self, remote_param=''):
+    def soap_service(self):
+        URL, log_pass = self.get_setiings()
+        client = Client(URL,
+                        username = log_pass[0],
+                        password = base64.standard_b64decode(log_pass[1]))
+        return client.service[0]
+
+    def get_soap_data(self, remote_param=''):
         """функция получает от сервиса 1С (веб-сервиса) данные
 
         :param remote_param:
@@ -675,9 +681,12 @@ class Pockets:
         :return: -1 в случае неудачного запроса к сервису, иначе 0.
         """
         rslt = 0
-        client = Client("http://money.kter.ru/money/ws/ws1.1cws?wsdl", username = 'ktu', password = '2132644')
-        data = client.service[0].Android_out2()
 
+        data = self.soap_service().Android_out2()
+
+        return data
+
+        '''
         SoapObject Request = new SoapObject(NAMESPACE, SOAP_METHOD_NAME2);
 
         // here you form body of your SOAP-request
@@ -724,6 +733,7 @@ class Pockets:
         }
         return rslt;
     }
+    '''
 
     # TODO если БД не прокатит, то чтение инфы о кошельках и остатках из файлов
     """

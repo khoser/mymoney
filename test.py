@@ -8,7 +8,14 @@
 
 import PocketClass
 
+
 pcs = PocketClass.Pockets('MyPythonMoney.db')
+pcs.create_db()
+pcs.set_settings("http://money.kter.ru/money/ws/ws1.1cws?wsdl",
+                 "ktu",
+                 "MjEzMjY0NA==", True)
+print pcs.get_soap_data()
+'''
 pcs.set_pocket("cash", "rub", 501.6)
 pcs.set_pocket("card", "rub", 3501.6)
 pcs.set_pocket("foreign", "usd", 0)
@@ -38,4 +45,5 @@ pcs.action_credit2_in(pcs.pockets[1], "it was 10.01", 1000, 'top of the day')
 print "\nнам вернули кредит: \n" + pcs.get_info()
 pcs.fill_from_db()
 print "\nafter filling: \n" + pcs.get_info()
+'''
 pcs.close_db()
