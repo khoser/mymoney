@@ -5,6 +5,7 @@
 Классы, описывающие кошельки и их поведение
 """
 import sqlite3
+import base64
 from suds import WebFault
 from suds.client import Client
 
@@ -132,8 +133,13 @@ class Pockets:
         вызывается только? при синхронизации и первичной инициации объекта
         """
         self.cur.executescript("""
-            DROP TABLE IF EXISTS Pockets;
+            DROP TABLE IF EXISTS Settings;
+            CREATE TABLE Settings(OwnerName VARCHAR(50),
+                                  Url_wsdl VARCHAR(300),
+                                  Login VARCHAR(50),
+                                  Pass VARCHAR(300));
 --кошельки
+            DROP TABLE IF EXISTS Pockets;
             CREATE TABLE Pockets(Name VARCHAR(50), Currency VARCHAR(10));
 --остатки
             DROP TABLE IF EXISTS Balances;
@@ -636,7 +642,26 @@ class Pockets:
         self.con.commit()
         return 0
 
+    # хранение настроек
+
+    def set_setiings(self, owner_name, url_wsdl, login, password):
+        self.cur.execute(
+            "INSERT INTO Settings VALUES (?, ?, ?, ?)",
+            (owner_name, url_wsdl, login, base64.standard_b64encode(password))
+        )
+        self.con.commit()
+
+    def get_setiings(self, owner_name):
+        self.cur.execute(
+            "SELECT * FROM Settings Where OwnerName LIKE ?",(owner_name)
+        )
+        if len(self.cur) == 0:
+            return 1
+        row = self.cur[0]
+        return row[0], (row[1], row[2])
+
     # todo передача и получение данных посредством веб-сервиса
+
     def Get_Soap_Service_Data(self, remote_param=''):
         """функция получает от сервиса 1С (веб-сервиса) данные
 
@@ -714,4 +739,3 @@ class Pockets:
             self.add_pocket(*i.split("/"))
     """
 
-    # todo хранение настроек
