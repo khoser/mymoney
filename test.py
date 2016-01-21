@@ -13,10 +13,29 @@ pcs = PocketClass.Pockets('MyPythonMoney.db')
 pcs.create_db()
 pcs.set_settings('http://money.kter.ru/money/ws/ws1.1cws?wsdl',
                  'ktu',
-                 '', True)
+                 '', False)
 print "\ninit:\n" + pcs.get_info()
 print pcs.get_all_soap_data()
 print "\nget data:\n" + pcs.get_info()
+#print "\n"
+#for itm in pcs.out_items:
+#    print itm
+pcs.action_out(pcs.pockets[6], pcs.out_items[14], 22, 0, 'Bread')
+print "\nout:\n" + pcs.get_info()
+pcs.cur.execute("SELECT * FROM OutAction")
+for row in pcs.cur:
+        print row[0]
+        print row[1]
+        print row[2]
+        print row[3]
+        print row[4]
+        print row[5]
+        print row[6]
+pcs.send_soap_data()
+print "\nafter sync:\n" + pcs.get_info()
+pcs.fill_from_db()
+print "\nafter filling:\n" + pcs.get_info()
+
 '''
 pcs.set_pocket("cash", "rub", 501.6)
 pcs.set_pocket("card", "rub", 3501.6)
