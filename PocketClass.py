@@ -89,8 +89,8 @@ class Pockets:
             4: 'Exchange',
             5: 'Сredit1In',
             6: 'Сredit1Out',
-            7: 'Сredit2Out',
-            8: 'Сredit2Iut',
+            7: 'Сredit2In',
+            8: 'Сredit2Out',
         }
 
     def close_db(self):
@@ -676,7 +676,7 @@ class Pockets:
 
     # todo передача и получение данных посредством веб-сервиса
 
-    def soap_service(self):
+    def soap_service_factory(self):
         URL, log_pass = self.get_setiings()
         try:
             client = Client(URL,
@@ -684,22 +684,22 @@ class Pockets:
                             password=base64.standard_b64decode(log_pass[1]))
         except WebFault:
             return -1
-        return client.service[0]
+        return client.service[0], client.factory
 
     def get_all_soap_data(self):
         """функция получает от сервиса 1С (веб-сервиса) данные
 
         :return: -1 в случае неудачного запроса к сервису, иначе 0.
         """
-        remote_functions = self.soap_service()
+        remote_functions, remote_types = self.soap_service_factory()
         if remote_functions == -1:
             return -1
         try:
             self.in_items = remote_functions.from1c2py('in_items').data
             self.out_items = remote_functions.from1c2py('out_items').data
+            self.contacts = remote_functions.from1c2py('contacts').data
             for pocket_data in remote_functions.from1c2py('pockets').data:
                 self.set_pocket(*pocket_data.data)
-            self.contacts = remote_functions.from1c2py('contacts').data
             for credit_data in remote_functions.from1c2py('credits').data:
                 self.set_credit(*credit_data.data)
         except WebFault:
@@ -715,8 +715,8 @@ class Pockets:
         self.cur.executescript("""
             SELECT
                 A.Id,
-                A.DateTime,
                 A.Action_name,
+                A.DateTime,
                 B.Value1,
                 B.Value2,
                 B.Value3,
@@ -779,8 +779,9 @@ class Pockets:
                     Сredit1InAction.Credit AS Value2,
                     cast(Сredit1InAction.Summ as text) AS Value3,
                     Сredit1InAction.Comment AS Value4,
-                    '' AS Value5
+                    Credits.Contact AS Value5
                 FROM Сredit1InAction
+                    LEFT JOIN Credits ON Credits.Name = Сredit1InAction.Credit
 
                 UNION ALL
 
@@ -791,8 +792,9 @@ class Pockets:
                     Сredit1OutAction.Credit AS Value2,
                     cast(Сredit1OutAction.Summ as text) AS Value3,
                     Сredit1OutAction.Comment AS Value4,
-                    '' AS Value5
+                    Credits.Contact AS Value5
                 FROM Сredit1OutAction
+                    LEFT JOIN Credits ON Credits.Name = Сredit1OutAction.Credit
 
                 UNION ALL
 
@@ -803,8 +805,9 @@ class Pockets:
                     Сredit2InAction.Credit AS Value2,
                     cast(Сredit2InAction.Summ as text) AS Value3,
                     Сredit2InAction.Comment AS Value4,
-                    '' AS Value5
+                    Credits.Contact AS Value5
                 FROM Сredit2InAction
+                    LEFT JOIN Credits ON Credits.Name = Сredit2InAction.Credit
 
                 SELECT
                     Сredit2OutAction.Id AS Id,
@@ -813,8 +816,9 @@ class Pockets:
                     Сredit2OutAction.Credit AS Value2,
                     cast(Сredit2OutAction.Summ as text) AS Value3,
                     Сredit2OutAction.Comment AS Value4,
-                    '' AS Value5
+                    Credits.Contact AS Value5
                 FROM Сredit2OutAction
+                    LEFT JOIN Credits ON Credits.Name = Сredit2OutAction.Credit
 
             ) AS B
                 ON A.Action_name = B.Action_name and A.ActionId = B.Id
@@ -822,8 +826,12 @@ class Pockets:
             """)
         data = []
         for row in self.cur:
-            data.append(row[1:])
+            values = row[1:]
+            values[0] = self.actions_names[values[0]]
+            data.append(values)
         return data
+
+        # todo по кредитам допрасходы и проценты
 
     def send_soap_data(self):
         """функция передает данные сервису 1С (веб-сервису)
@@ -831,12 +839,14 @@ class Pockets:
         :return: -1 в случае неудачного запроса к сервису, иначе 0.
         """
         data = self.prepare_send_data()
-        remote_functions = self.soap_service()
+        remote_functions, remote_types = self.soap_service_factory()
+        remote_data = remote_types.create('ns1:arr')
+        for detales in data:
+            remote_data.data = remote_types.create('ns1:arr')
+            remote_data.data.data = detales
         if remote_functions == -1:
             return -1
         try:
-            dt = remote_functions.from1c2py()
-            dt.data = data
             remote_functions.frompy21c(dt)
         except WebFault:
             return -1
