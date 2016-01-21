@@ -143,12 +143,6 @@ class Pockets:
         вызывается только? при синхронизации и первичной инициации объекта
         """
         self.cur.executescript("""
-            DROP
-                TABLE IF EXISTS Settings;
-            CREATE TABLE Settings(OwnerName VARCHAR(50),
-                                  Url_wsdl VARCHAR(300),
-                                  Login VARCHAR(50),
-                                  Pass VARCHAR(300));
 --кошельки
             DROP TABLE IF EXISTS Pockets;
             CREATE TABLE Pockets(Name VARCHAR(50), Currency VARCHAR(10));
@@ -662,6 +656,14 @@ class Pockets:
             pass_value = password
         else:
             pass_value = base64.standard_b64encode(password)
+        self.cur.executescript("""
+            DROP
+                TABLE IF EXISTS Settings;
+            CREATE TABLE Settings(OwnerName VARCHAR(50),
+                                  Url_wsdl VARCHAR(300),
+                                  Login VARCHAR(50),
+                                  Pass VARCHAR(300));
+                                  """)
         self.cur.execute("INSERT INTO Settings VALUES (?, ?, ?, ?)",
                          (1, url_wsdl, login, pass_value))
         self.con.commit()
@@ -833,7 +835,9 @@ class Pockets:
         if remote_functions == -1:
             return -1
         try:
-            remote_functions.frompy21c()
+            dt = remote_functions.from1c2py()
+            dt.data = data
+            remote_functions.frompy21c(dt)
         except WebFault:
             return -1
         return 0
