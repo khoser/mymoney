@@ -137,82 +137,91 @@ class Pockets:
         self.cur.executescript("""
 --последовательность
             DROP TABLE IF EXISTS Actions;
-            CREATE TABLE IF NOT EXISTS Actions(Id INT PRIMARY KEY,
-                                               DateTime VARCHAR(18),
-                                               Action_name INT,
-                                               ActionId INT);
+            CREATE TABLE IF NOT EXISTS Actions(
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                DateTime VARCHAR(18),
+                Action_name INTEGER,
+                ActionId INTEGER);
 --доходы 1
             DROP TABLE IF EXISTS InAction;
-            CREATE TABLE IF NOT EXISTS InAction(Id INT PRIMARY KEY,
-                                                Action_name INT,
-                                                Pocket VARCHAR(50),
-                                                Item VARCHAR(50),
-                                                Summ FLOAT,
-                                                Amount FLOAT,
-                                                Comment TEXT);
+            CREATE TABLE IF NOT EXISTS InAction(
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                Action_name INTEGER,
+                Pocket VARCHAR(50),
+                Item VARCHAR(50),
+                Summ FLOAT,
+                Amount FLOAT,
+                Comment TEXT);
 --расходы 2
             DROP TABLE IF EXISTS OutAction;
-            CREATE TABLE IF NOT EXISTS OutAction(Id INT PRIMARY KEY,
-                                                 Action_name INT,
-                                                 Pocket VARCHAR(50),
-                                                 Item VARCHAR(50),
-                                                 Summ FLOAT,
-                                                 Amount FLOAT,
-                                                 Comment TEXT);
+            CREATE TABLE IF NOT EXISTS OutAction(
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                Action_name INTEGER,
+                Pocket VARCHAR(50),
+                Item VARCHAR(50),
+                Summ FLOAT,
+                Amount FLOAT,
+                Comment TEXT);
 --перемещения 3
             DROP TABLE IF EXISTS BetweenAction;
-            CREATE TABLE IF NOT EXISTS BetweenAction(Id INT PRIMARY KEY,
-                                                     Action_name INT,
-                                                     PocketOut VARCHAR(50),
-                                                     PocketIn VARCHAR(50),
-                                                     Summ FLOAT,
-                                                     Comment TEXT);
+            CREATE TABLE IF NOT EXISTS BetweenAction(
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                Action_name INTEGER,
+                PocketOut VARCHAR(50),
+                PocketIn VARCHAR(50),
+                Summ FLOAT,
+                Comment TEXT);
 --обмен валют 4
             DROP TABLE IF EXISTS ExchangeAction;
-            CREATE TABLE IF NOT EXISTS ExchangeAction(Id INT PRIMARY KEY,
-                                                      Action_name INT,
-                                                      PocketOut VARCHAR(50),
-                                                      PocketIn VARCHAR(50),
-                                                      SummOut FLOAT,
-                                                      SummIn FLOAT,
-                                                      Comment TEXT);
+            CREATE TABLE IF NOT EXISTS ExchangeAction(
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                Action_name INTEGER,
+                PocketOut VARCHAR(50),
+                PocketIn VARCHAR(50),
+                SummOut FLOAT,
+                SummIn FLOAT,
+                Comment TEXT);
 --мы взяли в долг 5
             DROP TABLE IF EXISTS Сredit1InAction;
-            CREATE TABLE IF NOT EXISTS Сredit1InAction(Id INT PRIMARY KEY,
-                                                       Action_name INT,
-                                                       Pocket VARCHAR(50),
-                                                       Credit VARCHAR(50),
-                                                       Summ FLOAT,
-                                                       AdditionalSumm FLOAT,
-                                                       Comment TEXT);
+            CREATE TABLE IF NOT EXISTS Сredit1InAction(
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                Action_name INTEGER,
+                Pocket VARCHAR(50),
+                Credit VARCHAR(50),
+                Summ FLOAT,
+                AdditionalSumm FLOAT,
+                Comment TEXT);
 --мы вернули долг 6
             DROP TABLE IF EXISTS Сredit1OutAction;
-            CREATE TABLE IF NOT EXISTS Сredit1OutAction(Id INT PRIMARY KEY,
-                                                        Action_name INT,
-                                                        Pocket VARCHAR(50),
-                                                        Credit VARCHAR(50),
-                                                        Summ FLOAT,
-                                                        AdditionalSumm FLOAT,
-                                                        PercentSumm FLOAT,
-                                                        Comment TEXT);
+            CREATE TABLE IF NOT EXISTS Сredit1OutAction(
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                Action_name INTEGER,
+                Pocket VARCHAR(50),
+                Credit VARCHAR(50),
+                Summ FLOAT,
+                AdditionalSumm FLOAT,
+                PercentSumm FLOAT,
+                Comment TEXT);
 --нам вернули долг 7
             DROP TABLE IF EXISTS Сredit2InAction;
-            CREATE TABLE IF NOT EXISTS Сredit2InAction(Id INT PRIMARY KEY,
-                                                       Action_name INT,
-                                                       Pocket VARCHAR(50),
-                                                       Credit VARCHAR(50),
-                                                       Summ FLOAT,
-                                                       AdditionalSumm FLOAT,
-                                                       Comment TEXT);
+            CREATE TABLE IF NOT EXISTS Сredit2InAction(
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                Action_name INTEGER,
+                Pocket VARCHAR(50),
+                Credit VARCHAR(50),
+                Summ FLOAT,
+                AdditionalSumm FLOAT,
+                Comment TEXT);
 --мы дали в долг 8
             DROP TABLE IF EXISTS Сredit2OutAction;
-            CREATE TABLE IF NOT EXISTS Сredit2OutAction(Id INT PRIMARY KEY,
-                                                        Action_name INT,
-                                                        Pocket VARCHAR(50),
-                                                        Credit VARCHAR(50),
-                                                        Summ FLOAT,
-                                                        AdditionalSumm FLOAT,
-                                                        Comment TEXT);
+            CREATE TABLE IF NOT EXISTS Сredit2OutAction(
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                Action_name INTEGER,
+                Pocket VARCHAR(50),
+                Credit VARCHAR(50),
+                Summ FLOAT,
+                AdditionalSumm FLOAT,
+                Comment TEXT);
             """)
         self.con.commit()
 

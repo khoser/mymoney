@@ -22,7 +22,28 @@ print "\nget data:\n" + pcs.get_info()
 #    print itm
 pcs.action_out(pcs.pockets[6], pcs.out_items[14], 22, 0, 'Bread')
 print "\nout:\n" + pcs.get_info()
-pcs.cur.execute("SELECT * FROM OutAction")
+'''
+pcs.cur.execute("""
+
+                SELECT
+                    Actions.Id as id1,
+                    Actions.DateTime as DateTime,
+                    Actions.Action_name as aname,
+                    Actions.ActionId as aid,
+                    OutAction.Id                        AS Id,
+                    OutAction.Action_name               AS Action_name,
+                    cast(OutAction.Pocket   as text)    AS Value1,
+                    cast(OutAction.Item     as text)    AS Value2,
+                    cast(OutAction.Summ     as text)    AS Value3,
+                    cast(OutAction.Amount   as text)    AS Value4,
+                    OutAction.Comment                   AS Value5,
+                    ''                                  AS Value6,
+                    ''                                  AS Value7
+                FROM OutAction as OutAction
+                left join
+                Actions as Actions on ((OutAction.Id = Actions.ActionId) and (OutAction.Action_name = Actions.Action_name))
+""")
+
 for row in pcs.cur:
         print row[0]
         print row[1]
@@ -31,6 +52,14 @@ for row in pcs.cur:
         print row[4]
         print row[5]
         print row[6]
+        print row[7]
+        print row[8]
+        print row[9]
+        print row[10]
+        print row[11]
+        print row[12]
+      #  print row[9]
+'''
 pcs.send_soap_data()
 print "\nafter sync:\n" + pcs.get_info()
 pcs.fill_from_db()
