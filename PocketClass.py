@@ -76,6 +76,7 @@ class Pockets:
             7: 'Credit2In',
             8: 'Credit2Out',
         }
+        self.settings = {}
 
     def close_db(self):
         """
@@ -297,6 +298,7 @@ class Pockets:
         """
         Заполняем объект класса из базы данных
         """
+        self.get_setiings()
         # кошельки:
         self.cur.execute("""
                     SELECT
@@ -700,17 +702,21 @@ class Pockets:
     def get_setiings(self):
         self.cur.execute("SELECT * FROM Settings")
         for row in self.cur:
-            return row[1], (row[2], row[3])
+            self.settings['URL'] = row[1]
+            self.settings['Login'] = row[2]
+            self.settings['Pass'] = row[3]
         return 1
 
     # передача и получение данных посредством веб-сервиса
 
     def soap_service_factory(self):
-        URL, log_pass = self.get_setiings()
+        self.get_setiings()
         try:
-            client = Client(URL,
-                            username=log_pass[0],
-                            password=base64.standard_b64decode(log_pass[1]))
+            client = Client(self.settings['URL'],
+                            username=self.settings['Login'],
+                            password=base64.standard_b64decode(
+                                    self.settings['Pass'])
+                            )
         except WebFault:
             return -1
         return 0, client.service[0], client.factory
@@ -735,6 +741,7 @@ class Pockets:
                 self.set_credit(*credit_data.data)
         except WebFault:
             return -1
+        self.recreate_refs()
         return 0
 
     def prepare_send_data(self):
@@ -764,9 +771,9 @@ class Pockets:
                     cast(InAction.Item      as text)    AS Value2,
                     cast(InAction.Summ      as text)    AS Value3,
                     InAction.Comment                    AS Value4,
-                    ''                                  AS Value5,
-                    ''                                  AS Value6,
-                    ''                                  AS Value7
+                    '-'                                  AS Value5,
+                    '-'                                  AS Value6,
+                    '-'                                  AS Value7
                 FROM InAction as InAction
 
                 UNION ALL
@@ -779,8 +786,8 @@ class Pockets:
                     cast(OutAction.Summ     as text)    AS Value3,
                     cast(OutAction.Amount   as text)    AS Value4,
                     OutAction.Comment                   AS Value5,
-                    ''                                  AS Value6,
-                    ''                                  AS Value7
+                    '-'                                  AS Value6,
+                    '-'                                  AS Value7
                 FROM OutAction as OutAction
 
                 UNION ALL
@@ -792,9 +799,9 @@ class Pockets:
                     cast(BetweenAction.PocketIn     as text) AS Value2,
                     cast(BetweenAction.Summ         as text) AS Value3,
                     BetweenAction.Comment AS Value4,
-                    '' AS Value5,
-                    '' AS Value6,
-                    '' AS Value7
+                    '-' AS Value5,
+                    '-' AS Value6,
+                    '-' AS Value7
                 FROM BetweenAction as BetweenAction
 
                 UNION ALL
@@ -807,8 +814,8 @@ class Pockets:
                     cast(ExchangeAction.SummOut     as text) AS Value3,
                     cast(ExchangeAction.SummIn      as text) AS Value4,
                     ExchangeAction.Comment AS Value5,
-                    '' AS Value6,
-                    '' AS Value7
+                    '-' AS Value6,
+                    '-' AS Value7
                 FROM ExchangeAction as ExchangeAction
 
                 UNION ALL
@@ -822,7 +829,7 @@ class Pockets:
                     Сredit1InAction.Comment AS Value4,
                     cast(Credits.Contact                as text) AS Value5,
                     cast(Сredit1InAction.AdditionalSumm as text) AS Value6,
-                    '' AS Value7
+                    '-' AS Value7
                 FROM Сredit1InAction as Сredit1InAction
                     LEFT JOIN Credits as Credits ON Credits.Name = Сredit1InAction.Credit
 
@@ -852,7 +859,7 @@ class Pockets:
                     Сredit2InAction.Comment AS Value4,
                     cast(Credits.Contact                as text) AS Value5,
                     cast(Сredit2InAction.AdditionalSumm as text) AS Value6,
-                    '' AS Value7
+                    '-' AS Value7
                 FROM Сredit2InAction as Сredit2InAction
                     LEFT JOIN Credits as Credits ON Credits.Name = Сredit2InAction.Credit
 
@@ -867,7 +874,7 @@ class Pockets:
                     Сredit2OutAction.Comment AS Value4,
                     cast(Credits.Contact as text) AS Value5,
                     cast(Сredit2OutAction.AdditionalSumm as text) AS Value6,
-                    '' AS Value7
+                    '-' AS Value7
                 FROM Сredit2OutAction as Сredit2OutAction
                     LEFT JOIN Credits as Credits ON Credits.Name = Сredit2OutAction.Credit
 
@@ -877,8 +884,8 @@ class Pockets:
             """)
         data = []
         for row in self.cur:
-            values = [self.actions_names[row[1]]]
-            for i in xrange(7):
+            values = [self.settings['Login'], self.actions_names[row[1]]]
+            for i in xrange(8):
                 values.append(row[i+2])
             data.append(values)
         return data
@@ -896,8 +903,8 @@ class Pockets:
             return -1
         remote_data = remote_types.create('ns1:arr')
         for data_res in data:
-            remote_data.data = remote_types.create('ns1:arr')
-            remote_data.data.data = data_res
+            remote_data.data.append(remote_types.create('ns1:arr'))
+            remote_data.data[len(remote_data.data)-1].data = data_res
         try:
             remote_result = remote_functions.Frompy21c(remote_data)
         except WebFault:

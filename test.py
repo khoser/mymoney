@@ -10,60 +10,27 @@ import PocketClass
 
 
 pcs = PocketClass.Pockets('MyPythonMoney.db')
-pcs.create_db()
-pcs.set_settings('http://money.kter.ru/money/ws/ws1.1cws?wsdl',
-                 'ktu',
-                 '', False)
-print "\ninit:\n" + pcs.get_info()
-print pcs.get_all_soap_data()
-print "\nget data:\n" + pcs.get_info()
+#pcs.create_db()
+#pcs.set_settings('http://money.kter.ru/money/ws/ws1.1cws?wsdl',
+#                 'ktu',
+#                 '', False)
+#print "\ninit:\n" + pcs.get_info()
+#pcs.get_all_soap_data()
+#print "\nget data:\n" + pcs.get_info()
 #print "\n"
 #for itm in pcs.out_items:
 #    print itm
-pcs.action_out(pcs.pockets[6], pcs.out_items[14], 22, 0, 'Bread')
-print "\nout:\n" + pcs.get_info()
-'''
-pcs.cur.execute("""
-
-                SELECT
-                    Actions.Id as id1,
-                    Actions.DateTime as DateTime,
-                    Actions.Action_name as aname,
-                    Actions.ActionId as aid,
-                    OutAction.Id                        AS Id,
-                    OutAction.Action_name               AS Action_name,
-                    cast(OutAction.Pocket   as text)    AS Value1,
-                    cast(OutAction.Item     as text)    AS Value2,
-                    cast(OutAction.Summ     as text)    AS Value3,
-                    cast(OutAction.Amount   as text)    AS Value4,
-                    OutAction.Comment                   AS Value5,
-                    ''                                  AS Value6,
-                    ''                                  AS Value7
-                FROM OutAction as OutAction
-                left join
-                Actions as Actions on ((OutAction.Id = Actions.ActionId) and (OutAction.Action_name = Actions.Action_name))
-""")
-
-for row in pcs.cur:
-        print row[0]
-        print row[1]
-        print row[2]
-        print row[3]
-        print row[4]
-        print row[5]
-        print row[6]
-        print row[7]
-        print row[8]
-        print row[9]
-        print row[10]
-        print row[11]
-        print row[12]
-      #  print row[9]
-'''
-pcs.send_soap_data()
-print "\nafter sync:\n" + pcs.get_info()
 pcs.fill_from_db()
-print "\nafter filling:\n" + pcs.get_info()
+#pcs.action_between(pcs.pockets[9],pcs.pockets[6], 5000, 'UZI')
+#pcs.action_out(pcs.pockets[6], pcs.out_items[7], 2000, 0, 'UZI')
+#pcs.action_out(pcs.pockets[6], pcs.out_items[7], 115, 0, 'Bahils')
+#pcs.action_out(pcs.pockets[6], pcs.out_items[14], 38, 0, 'Potato')
+#print "\nout:\n" + pcs.get_info()
+
+
+pcs.send_soap_data()
+#print "\nafter sync:\n" + pcs.get_info()
+#print "\nafter filling:\n" + pcs.get_info()
 
 '''
 pcs.set_pocket("cash", "rub", 501.6)
