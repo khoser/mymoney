@@ -2,30 +2,41 @@
 
 
 <DrpDwnList>:
-    #orientation: 'lr-tb'
-    #padding: 0
+    padding: 0
     spacing: 0
-    #width: root.width
-    #height: 15
-    size: 1, 0.5
+    size_hint: 1, None
+    orientation: 'vertical'
     Label:
+        height: 10
         font_size: 10
         text:  str(root.label_text)
     TextInput:
+        height: 40
         font_size: 12
-        text: str(root.label_text)
+        text: str(root.input_text)
+
+
+<InptData>:
+    padding: 0
+    spacing: 0
+    size_hint: 1, None
+    orientation: 'vertical'
+    Label:
+        height: 10
+        font_size: 10
+        text:  str(root.label_text)
+    TextInput:
+        height: 40
+        font_size: 12
+        text: str(root.input_text)
 
 
 <MyFace>:
-    orientation: 'lr-bt'
+    orientation: 'lr-tb'
     padding: 10
     spacing: 25
-    size_hint: 1, 0.1
+    #
 
-    Button:
-        on_press: root.some_action()
-        pos: self.pos
-        size: self.size
 
 
 
