@@ -1,45 +1,31 @@
 #:kivy 1.9.0
 
 
+<DrpDwnList>:
+    #orientation: 'lr-tb'
+    #padding: 0
+    spacing: 0
+    #width: root.width
+    #height: 15
+    size: 1, 0.5
+    Label:
+        font_size: 10
+        text:  str(root.label_text)
+    TextInput:
+        font_size: 12
+        text: str(root.label_text)
+
+
 <MyFace>:
-    item_in: items_in
-    item_out: items_out
+    orientation: 'lr-bt'
+    padding: 10
+    spacing: 25
+    size_hint: 1, 0.1
 
-    orientation: 'vertical'
-    padding: 20
-    spacing: 10
-    size_hint: 1, 0.3
-
-    ItemsIn:
-        id: items_in
-
-    ItemsOut:
-        id: items_out
+    Button:
+        on_press: root.some_action()
+        pos: self.pos
+        size: self.size
 
 
-<ItemsIn>:
-    orientation: 'vertical'
-    padding: 0
-    width: root.width
-    height: 15
 
-    Label:
-        font_size: 10
-        text: 'Статья дохода:'
-
-    TextInput:
-        font_size: 12
-        text: 'item_in'
-
-
-<ItemsOut>:
-    orientation: 'vertical'
-    padding: 0
-    width: root.width
-    Label:
-        font_size: 10
-        text: 'Статья расхода:'
-
-    TextInput:
-        font_size: 12
-        text: ('item_out')

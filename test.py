@@ -6,10 +6,10 @@
 """
 
 
-import PocketClass
+# import PocketClass
 
 
-pcs = PocketClass.Pockets('MyPythonMoney.db')
+# pcs = PocketClass.Pockets('MyPythonMoney.db')
 #pcs.create_db()
 #pcs.set_settings('http://money.kter.ru/money/ws/ws1.1cws?wsdl',
 #                 'ktu',
@@ -20,7 +20,7 @@ pcs = PocketClass.Pockets('MyPythonMoney.db')
 #print "\n"
 #for itm in pcs.out_items:
 #    print itm
-pcs.fill_from_db()
+# pcs.fill_from_db()
 #pcs.action_between(pcs.pockets[9],pcs.pockets[6], 5000, 'UZI')
 #pcs.action_out(pcs.pockets[6], pcs.out_items[7], 2000, 0, 'UZI')
 #pcs.action_out(pcs.pockets[6], pcs.out_items[7], 115, 0, 'Bahils')
@@ -28,7 +28,7 @@ pcs.fill_from_db()
 #print "\nout:\n" + pcs.get_info()
 
 
-pcs.send_soap_data()
+# pcs.send_soap_data()
 #print "\nafter sync:\n" + pcs.get_info()
 #print "\nafter filling:\n" + pcs.get_info()
 
@@ -63,4 +63,54 @@ print "\nнам вернули кредит:\n" + pcs.get_info()
 pcs.fill_from_db()
 print "\nafter filling:\n" + pcs.get_info()
 '''
-pcs.close_db()
+# pcs.close_db()
+
+from kivy.app import App
+from kivy.uix.floatlayout import FloatLayout
+from kivy.lang import Builder
+
+
+Builder.load_string('''
+#:kivy 1.7.0
+
+<GridLayout>
+    canvas.before:
+        BorderImage:
+            # BorderImage behaves like the CSS BorderImage
+            border: 10, 10, 10, 10
+            source: '../examples/widgets/sequenced_images/data/images/button_white.png'
+            pos: self.pos
+            size: self.size
+
+<RootWidget>
+    GridLayout:
+        size_hint: .9, .9
+        pos_hint: {'center_x': .5, 'center_y': .5}
+        rows:1
+        Label:
+            text: "I don't suffer from insanity, I enjoy every minute of it"
+            text_size: self.width-20, self.height-20
+            valign: 'top'
+        Label:
+            text: "When I was born I was so surprised; I didn't speak for a year and a half."
+            text_size: self.width-20, self.height-20
+            valign: 'middle'
+            halign: 'center'
+        Label:
+            text: "A consultant is someone who takes a subject you understand and makes it sound confusing"
+            text_size: self.width-20, self.height-20
+            valign: 'bottom'
+            halign: 'justify'
+''')
+
+class RootWidget(FloatLayout):
+    pass
+
+
+class MainApp(App):
+
+    def build(self):
+        return RootWidget()
+
+if __name__ == '__main__':
+    MainApp().run()
