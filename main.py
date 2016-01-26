@@ -37,7 +37,10 @@ class MyFace(StackLayout):
     def __init__(self, **kwargs):
         super(MyFace,self).__init__(**kwargs)
         self.pcs = PocketClass.Pockets('MyPythonMoney.db')
+        self.pcs.fill_from_db()
+        self.pcs.get_setiings()
         self.prepare_action_chooser()
+        self.previous_action_name = ''
 
     def prepare_action_chooser(self):
         self.chooser = DrpDwnList(
@@ -65,30 +68,57 @@ class MyFace(StackLayout):
         return item_name
 
     def on_money_label_text(self, instance, value):
-        print self.money_label_text
-        print value
         self.money_label.text = ('[b][color=008000]%s[/color][/b]' % value)
 
     def show_money(self, pocket_name):
         self.money_label_text = str(self.pcs.get_one(pocket_name).balance)
 
     def prepare_action(self, action_name, *args, **kwargs):
+        if self.previous_action_name == 'In':
+            self.remove_widget(self.pocket)
+            self.remove_widget(self.item_in)
+            self.remove_widget(self.summ)
+            self.remove_widget(self.comment)
+            self.remove_widget(self.btn)
+        elif self.previous_action_name == 'Out':
+            self.remove_widget(self.pocket)
+            self.remove_widget(self.item_out)
+            self.remove_widget(self.summ)
+            self.remove_widget(self.amount)
+            self.remove_widget(self.comment)
+            self.remove_widget(self.btn)
+        elif self.previous_action_name == 'Betwean':
+            pass
+        elif self.previous_action_name == 'Exchange':
+            pass
+        elif self.previous_action_name == 'Credit1In':
+            pass
+        elif self.previous_action_name == 'Credit1Out':
+            pass
+        elif self.previous_action_name == 'Credit2In':
+            pass
+        elif self.previous_action_name == 'Credit2Out':
+            pass
         if action_name == 'In':
-            self.pocket = DrpDwnList('Кошелек:', ['qw', 'we', 'ert'], self.show_money)
+            self.pocket = DrpDwnList('Кошелек:',
+                                     [i.name for i in self.pcs.pockets],
+                                     self.show_money)
             self.add_widget(self.pocket)
-            self.item_in = DrpDwnList('Статья:', ['1qw', '1we', '1ert'], self.show_money)
+            self.item_in = DrpDwnList('Статья:', self.pcs.in_items)
             self.add_widget(self.item_in)
             self.summ = InptData('Сумма:')
             self.add_widget(self.summ)
             self.comment = InptData('Комментарий:')
             self.add_widget(self.comment)
-            self.btn = Button(size_hint=(1, None), height=50,
+            self.btn = Button(text='Учесть', size_hint=(1, None), height=50,
                               on_press=partial(self.some_action))
             self.add_widget(self.btn)
         elif action_name == 'Out':
-            self.pocket = DrpDwnList('Кошелек:', ['qw', 'we', 'ert'])
+            self.pocket = DrpDwnList('Кошелек:',
+                                     [i.name for i in self.pcs.pockets],
+                                     self.show_money)
             self.add_widget(self.pocket)
-            self.item_out = DrpDwnList('Статья:', ['1qw', '1we', '1ert'])
+            self.item_out = DrpDwnList('Статья:', self.pcs.out_items)
             self.add_widget(self.item_out)
             self.summ = InptData('Сумма:')
             self.add_widget(self.summ)
@@ -96,7 +126,7 @@ class MyFace(StackLayout):
             self.add_widget(self.amount)
             self.comment = InptData('Комментарий:')
             self.add_widget(self.comment)
-            self.btn = Button(size_hint=(1, None), height=50,
+            self.btn = Button(text='Учесть', size_hint=(1, None), height=50,
                               on_press=partial(self.some_action))
             self.add_widget(self.btn)
         elif action_name == 'Betwean':
@@ -111,15 +141,15 @@ class MyFace(StackLayout):
             pass
         elif action_name == 'Credit2Out':
             pass
+        self.previous_action_name = action_name
 
     def some_action(self, x):
         pass
 
 
 class DrpDwnList(BoxLayout):
-    #drpd_inpt = ObjectProperty(Spinner)
 
-    def __init__(self, caption, values, action, **kwargs):
+    def __init__(self, caption, values, action=None, **kwargs):
         self.values = values
         self.caption = caption
         self.action = action
@@ -135,16 +165,16 @@ class DrpDwnList(BoxLayout):
             #size=(100, 44),
             #pos_hint={'center_x': .5, 'center_y': .5}
                 )
-        self.spinner.bind(text=self.use_selected_value)
+        if action is not None:
+            self.spinner.bind(text=self.use_selected_value)
         self.add_widget(self.spinner)
 
     def use_selected_value(self, spinner, text):
-        #print('The spinner', spinner, 'have text', text)
         self.action(text)
 
 
 class InptData(BoxLayout):
-    input_text = ObjectProperty(None)
+    input_text = StringProperty(None)
 
     def __init__(self, caption, **kwargs):
         self.caption = caption
@@ -154,10 +184,6 @@ class InptData(BoxLayout):
 class MyMoney(App):
     def build(self):
         face = MyFace()
-        #face.prepare_action_chooser(pcs.actions_names[i+1] for i in xrange(8))
-        # btn = Button()
-        # face.add_widget(btn)
-
         return face
 
 
