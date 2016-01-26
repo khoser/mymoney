@@ -8,37 +8,26 @@ from gtk._gtk import Button
 
 import PocketClass
 from kivy.app import App, Builder
-from kivy.uix.widget import Widget
+from kivy.uix.scrollview import ScrollView
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.stacklayout import StackLayout
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.properties import (NumericProperty, ObjectProperty, StringProperty,
     ListProperty)
-from kivy.graphics import Rectangle, Color #, Canvas
+from kivy.graphics import Rectangle, Color, Canvas
 from kivy.uix.spinner import Spinner
+from kivy.uix.textinput import TextInput
 from functools import partial
 
 
 class MyFace(StackLayout):
-    # item_in = ObjectProperty(None)
-    # item_out = ObjectProperty(None)
-    # pocket = ObjectProperty(None)
-    # item = ObjectProperty(None)
-    # summ = ObjectProperty(None)
-    # amount = ObjectProperty(None)
-    # comment = ObjectProperty(None)
-    #
-    # btn = ObjectProperty(None)
-
-    #chooser = ObjectProperty(DrpDwnList)
     money_label_text = StringProperty('')
 
     def __init__(self, **kwargs):
-        super(MyFace,self).__init__(**kwargs)
+        super(MyFace, self).__init__(**kwargs)
         self.pcs = PocketClass.Pockets('MyPythonMoney.db')
         self.pcs.fill_from_db()
-        self.pcs.get_setiings()
         self.prepare_action_chooser()
         self.previous_action_name = ''
 
@@ -57,7 +46,6 @@ class MyFace(StackLayout):
         box_layout.add_widget(self.chooser)
         box_layout.add_widget(self.money_label)
         self.add_widget(box_layout)
-
 
     def get_last(self, item_name):
         """
@@ -88,9 +76,18 @@ class MyFace(StackLayout):
             self.remove_widget(self.comment)
             self.remove_widget(self.btn)
         elif self.previous_action_name == 'Betwean':
-            pass
+            self.remove_widget(self.pocket)
+            self.remove_widget(self.to_pocket)
+            self.remove_widget(self.summ)
+            self.remove_widget(self.comment)
+            self.remove_widget(self.btn)
         elif self.previous_action_name == 'Exchange':
-            pass
+            self.remove_widget(self.pocket)
+            self.remove_widget(self.to_pocket)
+            self.remove_widget(self.summ_out)
+            self.remove_widget(self.summ_in)
+            self.remove_widget(self.comment)
+            self.remove_widget(self.btn)
         elif self.previous_action_name == 'Credit1In':
             pass
         elif self.previous_action_name == 'Credit1Out':
@@ -111,7 +108,7 @@ class MyFace(StackLayout):
             self.comment = InptData('Комментарий:')
             self.add_widget(self.comment)
             self.btn = Button(text='Учесть', size_hint=(1, None), height=50,
-                              on_press=partial(self.some_action))
+                              on_press=partial(self.do_action_in))
             self.add_widget(self.btn)
         elif action_name == 'Out':
             self.pocket = DrpDwnList('Кошелек:',
@@ -127,14 +124,44 @@ class MyFace(StackLayout):
             self.comment = InptData('Комментарий:')
             self.add_widget(self.comment)
             self.btn = Button(text='Учесть', size_hint=(1, None), height=50,
-                              on_press=partial(self.some_action))
+                              on_press=partial(self.do_action_out))
             self.add_widget(self.btn)
         elif action_name == 'Betwean':
-            pass
+            self.pocket = DrpDwnList('Из кошелька:',
+                                     [i.name for i in self.pcs.pockets],
+                                     self.show_money)
+            self.add_widget(self.pocket)
+            self.to_pocket = DrpDwnList('В кошелек:',
+                                     [i.name for i in self.pcs.pockets],
+                                     self.show_money)
+            self.add_widget(self.to_pocket)
+            self.summ = InptData('Сумма:')
+            self.add_widget(self.summ)
+            self.comment = InptData('Комментарий:')
+            self.add_widget(self.comment)
+            self.btn = Button(text='Учесть', size_hint=(1, None), height=50,
+                              on_press=partial(self.do_action_between))
+            self.add_widget(self.btn)
         elif action_name == 'Exchange':
-            pass
+            self.pocket = DrpDwnList('Из кошелька:',
+                                     [i.name for i in self.pcs.pockets],
+                                     self.show_money)
+            self.add_widget(self.pocket)
+            self.to_pocket = DrpDwnList('В кошелек:',
+                                     [i.name for i in self.pcs.pockets],
+                                     self.show_money)
+            self.add_widget(self.to_pocket)
+            self.summ_out = InptData('Сумма потрачено:')
+            self.add_widget(self.summ_out)
+            self.summ_in = InptData('Сумма получено:')
+            self.add_widget(self.summ_in)
+            self.comment = InptData('Комментарий:')
+            self.add_widget(self.comment)
+            self.btn = Button(text='Учесть', size_hint=(1, None), height=50,
+                              on_press=partial(self.some_action))
+            self.add_widget(self.btn)
         elif action_name == 'Credit1In':
-            pass
+            pass #todo обработка интерфейса и работы с кредитами
         elif action_name == 'Credit1Out':
             pass
         elif action_name == 'Credit2In':
@@ -143,8 +170,36 @@ class MyFace(StackLayout):
             pass
         self.previous_action_name = action_name
 
+
     def some_action(self, x):
         pass
+
+    def do_action_in(self, *args):
+        self.pcs.action_in(self.pcs.get_one(self.pocket.spinner.text),
+                           self.item_in.spinner.text,
+                           float(self.summ.text_input.text),
+                           0,
+                           self.comment.text_input.text)
+
+    def do_action_out(self, *args):
+        self.pcs.action_out(self.pcs.get_one(self.pocket.spinner.text),
+                            self.item_out.spinner.text,
+                            float(self.summ.text_input.text),
+                            float(self.amount.text_input.text),
+                            self.comment.text_input.text)
+
+    def do_action_between(self, *args):
+        self.pcs.action_between(self.pcs.get_one(self.pocket.spinner.text),
+                                self.pcs.get_one(self.to_pocket.spinner.text),
+                                float(self.summ.text_input.text),
+                                self.comment.text_input.text)
+
+    def do_action_exchange(self, *args):
+        self.pcs.action_exchange(self.pcs.get_one(self.pocket.spinner.text),
+                                 self.pcs.get_one(self.to_pocket.spinner.text),
+                                 float(self.summ_out.text_input.text),
+                                 float(self.summ_in.text_input.text),
+                                 self.comment.text_input.text)
 
 
 class DrpDwnList(BoxLayout):
@@ -154,7 +209,6 @@ class DrpDwnList(BoxLayout):
         self.caption = caption
         self.action = action
         super(DrpDwnList, self).__init__(**kwargs)
-
         self.spinner = Spinner(
             # default value shown
             text='..select..',
@@ -174,18 +228,25 @@ class DrpDwnList(BoxLayout):
 
 
 class InptData(BoxLayout):
-    input_text = StringProperty(None)
 
     def __init__(self, caption, **kwargs):
         self.caption = caption
         super(InptData, self).__init__(**kwargs)
+        self.text_input = TextInput(height=20)
+        self.add_widget(self.text_input)
 
 
 class MyMoney(App):
     def build(self):
-        face = MyFace()
-        return face
+        scroll_view = ScrollView(size_hint=(1, 1),
+                                 #size=(720, 1280),
+                                 do_scroll_x=False, do_scroll_y=True)
+        self.face = MyFace()
+        scroll_view.add_widget(self.face)
+        return scroll_view
 
+    def on_stop(self):
+        self.face.pcs.close_db()
 
 if __name__ == '__main__':
     Builder.load_file('main.kv')

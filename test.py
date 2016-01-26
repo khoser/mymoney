@@ -6,15 +6,16 @@
 """
 
 
-# import PocketClass
+import PocketClass
 
 
-# pcs = PocketClass.Pockets('MyPythonMoney.db')
+pcs = PocketClass.Pockets('MyPythonMoney.db')
 #pcs.create_db()
 #pcs.set_settings('http://money.kter.ru/money/ws/ws1.1cws?wsdl',
 #                 'ktu',
 #                 '', False)
-#print "\ninit:\n" + pcs.get_info()
+pcs.fill_from_db()
+print "\ninit:\n" + pcs.get_info()
 #pcs.get_all_soap_data()
 #print "\nget data:\n" + pcs.get_info()
 #print "\n"
@@ -27,8 +28,8 @@
 #pcs.action_out(pcs.pockets[6], pcs.out_items[14], 38, 0, 'Potato')
 #print "\nout:\n" + pcs.get_info()
 
-
-# pcs.send_soap_data()
+#data = pcs.prepare_send_data()
+pcs.send_soap_data()
 #print "\nafter sync:\n" + pcs.get_info()
 #print "\nafter filling:\n" + pcs.get_info()
 
@@ -65,6 +66,7 @@ print "\nafter filling:\n" + pcs.get_info()
 '''
 # pcs.close_db()
 
+"""
 from kivy.uix.button import Button
 from kivy.uix.widget import Widget
 from kivy.uix.label import Label
@@ -132,3 +134,4 @@ class StressCanvasApp(App):
 
 if __name__ == '__main__':
     StressCanvasApp().run()
+"""
