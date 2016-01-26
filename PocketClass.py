@@ -122,6 +122,15 @@ class Pockets:
                 res += "\n"
         return res
 
+    def get_one(self, obj_name):
+        # возвращает кошелек (кредит) по наименованию
+        for i in self.pockets:
+            if i.name == obj_name:
+                return i
+        for i in self.credits:
+            if i.name == obj_name:
+                return i
+
     def create_db(self):
         """
         (пере)создание базы данных

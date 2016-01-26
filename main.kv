@@ -8,12 +8,9 @@
     orientation: 'vertical'
     Label:
         height: 10
-        font_size: 10
-        text:  str(root.label_text)
-    TextInput:
-        height: 40
-        font_size: 12
-        text: str(root.input_text)
+        #font_size: 12
+        text:  str(root.caption)
+
 
 
 <InptData>:
@@ -23,18 +20,19 @@
     orientation: 'vertical'
     Label:
         height: 10
-        font_size: 10
-        text:  str(root.label_text)
+        #font_size: 12
+        text:  str(root.caption)
     TextInput:
+        id: input_text
         height: 40
-        font_size: 12
-        text: str(root.input_text)
+        #font_size: 14
+        #text: str(root.caption)
 
 
 <MyFace>:
     orientation: 'lr-tb'
     padding: 10
-    spacing: 25
+    spacing: 5
     #
 
 
