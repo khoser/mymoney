@@ -7,6 +7,7 @@
 from gtk._gtk import Button
 
 import PocketClass
+from garden.navigationdrawer import NavigationDrawer
 from kivy.app import App, Builder
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.boxlayout import BoxLayout
@@ -24,9 +25,9 @@ from functools import partial
 class MyFace(StackLayout):
     money_label_text = StringProperty('')
 
-    def __init__(self, **kwargs):
+    def __init__(self, pcs, **kwargs):
         super(MyFace, self).__init__(**kwargs)
-        self.pcs = PocketClass.Pockets('MyPythonMoney.db')
+        self.pcs = pcs
         self.pcs.fill_from_db()
         self.prepare_action_chooser()
         self.previous_action_name = ''
@@ -235,15 +236,57 @@ class InptData(BoxLayout):
         self.text_input = TextInput(height=20)
         self.add_widget(self.text_input)
 
+class BackPanel(BoxLayout):
+
+    def __init__(self, pcs,  **kwargs):
+        self.pcs = pcs
+        self.orientation = 'vertical'
+        super(BackPanel, self).__init__(**kwargs)
+        button1 = Button(
+            text='Первичка', size_hint=(1, None),
+            #height=50,
+            #on_press=partial(self.some_action)
+        )
+        button2 = Button(
+            text='Отчеты', size_hint=(1, None),
+            #height=50,
+            #on_press=partial(self.some_action)
+        )
+        button3 = Button(
+            text='Настройки', size_hint=(1, None),
+            #height=50,
+            #on_press=partial(self.some_action)
+        )
+        button4 = Button(
+            text='Синхронизировать', size_hint=(1, None),
+            #height=50,
+            #on_press=partial(self.some_action)
+        )
+        button5 = Button(
+            text='Выход', size_hint=(1, None),
+            #height=50,
+            #on_press=partial(self.some_action)
+        )
+        self.add_widget(button1)
+        self.add_widget(button2)
+        self.add_widget(button3)
+        self.add_widget(button4)
+        self.add_widget(button5)
+
 
 class MyMoney(App):
     def build(self):
+        pcs = PocketClass.Pockets('MyPythonMoney.db')
+        navi_drawer = NavigationDrawer()
+        back_panel = BackPanel(pcs)
         scroll_view = ScrollView(size_hint=(1, 1),
                                  #size=(720, 1280),
                                  do_scroll_x=False, do_scroll_y=True)
-        self.face = MyFace()
+        self.face = MyFace(pcs)
         scroll_view.add_widget(self.face)
-        return scroll_view
+        navi_drawer.add_widget(back_panel)
+        navi_drawer.add_widget(scroll_view)
+        return navi_drawer
 
     def on_stop(self):
         self.face.pcs.close_db()
