@@ -4,8 +4,6 @@
 """
 Интерфейсная часть
 """
-from gtk._gtk import Button
-
 import PocketClass
 from garden.navigationdrawer import NavigationDrawer
 from kivy.app import App, Builder
@@ -13,6 +11,7 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.stacklayout import StackLayout
 from kivy.uix.label import Label
+from kivy.uix.popup import Popup
 from kivy.uix.button import Button
 from kivy.properties import (NumericProperty, ObjectProperty, StringProperty,
     ListProperty)
@@ -21,6 +20,7 @@ from kivy.uix.spinner import Spinner
 from kivy.uix.textinput import TextInput
 from functools import partial
 
+import multiprocessing
 
 class MyFace(StackLayout):
     money_label_text = StringProperty('')
@@ -57,7 +57,7 @@ class MyFace(StackLayout):
         return item_name
 
     def on_money_label_text(self, instance, value):
-        self.money_label.text = ('[b][color=008000]%s[/color][/b]' % value)
+        self.money_label.text = '[b][color=008000]%s[/color][/b]' % value
 
     def show_money(self, pocket_name):
         self.money_label_text = str(self.pcs.get_one(pocket_name).balance)
@@ -236,12 +236,46 @@ class InptData(BoxLayout):
         self.text_input = TextInput(height=20)
         self.add_widget(self.text_input)
 
+class AuthorizationPopUp(BoxLayout):
+
+    def __init__(self, pcs, popup, **kwargs):
+        self.orientation = 'vertical'
+        self.pcs = pcs
+        self.popup = popup
+        super(AuthorizationPopUp, self).__init__(**kwargs)
+        self.pcs.get_settings()
+        label1 = Label(text='URL:')
+        self.add_widget(label1)
+        self.text_input1 = TextInput(text=self.pcs.settings['URL'])
+        self.add_widget(self.text_input1)
+        label1 = Label(text='Login:')
+        self.add_widget(label1)
+        self.text_input2 = TextInput(text=self.pcs.settings['Login'])
+        self.add_widget(self.text_input2)
+        label1 = Label(text='Password:')
+        self.add_widget(label1)
+        self.text_input3 = TextInput(password=True)
+        self.add_widget(self.text_input3)
+        button = Button(height=20, text='Save', size_hint=(1, None),
+                        on_press=partial(self.save_and_hide))
+        self.add_widget(button)
+
+    def save_and_hide(self, *args):
+        self.pcs.set_settings(self.text_input1.text,
+                              self.text_input2.text,
+                              self.text_input3.text)
+        self.popup.popup.dismiss()
+
 class BackPanel(BoxLayout):
+    kostyl = NumericProperty(1)
 
     def __init__(self, pcs,  **kwargs):
         self.pcs = pcs
         self.orientation = 'vertical'
         super(BackPanel, self).__init__(**kwargs)
+        self.popup = Popup(title='Настройки',
+                           content=AuthorizationPopUp(self.pcs, self),
+                           size_hint=(0.7, 0.7))
         button1 = Button(
             text='Первичка', size_hint=(1, None),
             #height=50,
@@ -255,12 +289,12 @@ class BackPanel(BoxLayout):
         button3 = Button(
             text='Настройки', size_hint=(1, None),
             #height=50,
-            #on_press=partial(self.some_action)
         )
+        button3.bind(on_release=self.popup.open)
         button4 = Button(
             text='Синхронизировать', size_hint=(1, None),
             #height=50,
-            #on_press=partial(self.some_action)
+            on_press=partial(self.do_synchronization)
         )
         button5 = Button(
             text='Выход', size_hint=(1, None),
@@ -273,6 +307,21 @@ class BackPanel(BoxLayout):
         self.add_widget(button4)
         self.add_widget(button5)
 
+    def on_kostyl(self, *args):
+        self.pcs.recreate_docs()
+        self.pcs.recreate_refs()
+
+    def to_sync_in_thread(self):
+        n1 = self.pcs.send_soap_data()
+        n2 = self.pcs.get_all_soap_data()
+        if n1 + n2 == 0:
+            self.kostyl *= -1
+
+    def do_synchronization(self, *args):
+        self.pcs.prepare_send_data()
+        t1 = multiprocessing.Process(target=self.to_sync_in_thread)
+        t1.start();
+        t1.join();
 
 class MyMoney(App):
     def build(self):
