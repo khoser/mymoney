@@ -745,6 +745,9 @@ class Pockets:
             pass_value = password
         else:
             pass_value = base64.standard_b64encode(password)
+        self.settings['URL'] = url_wsdl
+        self.settings['Login'] = login
+        self.settings['Pass'] = pass_value
         con = sqlite3.connect(self.db_name)
         cur = con.cursor()
         cur.executescript("""

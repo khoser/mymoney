@@ -21,6 +21,7 @@ from kivy.uix.textinput import TextInput
 from functools import partial
 
 import multiprocessing
+import threading
 
 class MyFace(StackLayout):
     money_label_text = StringProperty('')
@@ -315,9 +316,11 @@ class BackPanel(BoxLayout):
 
     def do_synchronization(self, *args):
         self.pcs.prepare_send_data()
-        t1 = multiprocessing.Process(target=self.to_sync_in_thread)
+        #t1 = multiprocessing.Process(target=self.to_sync_in_thread)
+        t1 = threading.Thread(target=self.to_sync_in_thread)
         t1.start();
         t1.join();
+
 
 class MyMoney(App):
     def build(self):
