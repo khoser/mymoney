@@ -64,8 +64,7 @@ class Pockets:
         self.in_items = []
         self.contacts = []
         self.credits = []
-        self.con = sqlite3.connect(db_name)
-        self.cur = self.con.cursor()
+        self.db_name = db_name
         self.actions_names = {
             1: 'In',
             2: 'Out',
@@ -84,7 +83,8 @@ class Pockets:
         Требуется вызывать при завершении существования объекта в
         дереве жизни приложения
         """
-        self.con.close()
+        #self.con.close()
+        pass
 
     def set_pocket(self, name, currency='', balance=0):
         # добавление еще одного кошелька в список
@@ -145,7 +145,10 @@ class Pockets:
         (пере)создание базы данных
         вызывается только? при синхронизации и первичной инициации объекта
         """
-        self.cur.executescript("""
+        con = sqlite3.connect(self.db_name)
+        cur = con.cursor()
+
+        cur.executescript("""
 --последовательность
             DROP TABLE IF EXISTS Actions;
             CREATE TABLE IF NOT EXISTS Actions(
@@ -234,10 +237,14 @@ class Pockets:
                 AdditionalSumm FLOAT,
                 Comment TEXT);
             """)
-        self.con.commit()
+        con.commit()
+        con.close()
 
     def recreate_refs(self):
-        self.cur.executescript("""
+        con = sqlite3.connect(self.db_name)
+        cur = con.cursor()
+
+        cur.executescript("""
 --кошельки
             DROP TABLE IF EXISTS Pockets;
             CREATE TABLE Pockets(Name VARCHAR(50), Currency VARCHAR(10));
@@ -263,16 +270,16 @@ class Pockets:
                                  Contact VARCHAR(50),
                                  Currency VARCHAR(10));
             """)
-        self.con.commit()
+        con.commit()
         for pocket in self.pockets:
-            self.cur.execute(
+            cur.execute(
                             "INSERT INTO Pockets VALUES (?, ?)",
                             (
                                 pocket.name,
                                 pocket.currency
                             )
                         )
-            self.cur.execute(
+            cur.execute(
                             "INSERT INTO Balances VALUES (?, ?)",
                             (
                                 pocket.name,
@@ -280,13 +287,13 @@ class Pockets:
                             )
                         )
         for x in self.out_items:
-            self.cur.execute("INSERT INTO OutItems VALUES (?)", (x,))
+            cur.execute("INSERT INTO OutItems VALUES (?)", (x,))
         for x in self.in_items:
-            self.cur.execute("INSERT INTO InItems VALUES (?)", (x,))
+            cur.execute("INSERT INTO InItems VALUES (?)", (x,))
         for x in self.contacts:
-            self.cur.execute("INSERT INTO Contacts VALUES (?)", (x,))
+            cur.execute("INSERT INTO Contacts VALUES (?)", (x,))
         for credit in self.credits:
-            self.cur.execute(
+            cur.execute(
                             "INSERT INTO Credits VALUES (?, ?, ?)",
                             (
                                 credit.name,
@@ -294,15 +301,15 @@ class Pockets:
                                 credit.currency
                             )
                         )
-            self.cur.execute(
+            cur.execute(
                             "INSERT INTO CreditBalances VALUES (?, ?)",
                             (
                                 credit.name,
                                 credit.balance
                             )
                         )
-        self.con.commit()
-        #con.close()
+        con.commit()
+        con.close()
 
     def fill_from_db(self):
         """
@@ -310,8 +317,11 @@ class Pockets:
         """
         self.get_settings()
         # кошельки:
+        con = sqlite3.connect(self.db_name)
+        cur = con.cursor()
+        returnvalue = 0
         try:
-            self.cur.execute("""
+            cur.execute("""
                         SELECT
                                P.Name,
                                P.Currency,
@@ -319,22 +329,22 @@ class Pockets:
                         FROM Pockets AS P
                         LEFT JOIN Balances AS B ON B.Pocket = P.Name
                         """)
-            for row in self.cur:
+            for row in cur:
                 self.set_pocket(row[0], row[1], row[2])
             # статьи доходов:
-            self.cur.execute("SELECT * FROM InItems")
-            for row in self.cur:
+            cur.execute("SELECT * FROM InItems")
+            for row in cur:
                 self.in_items.append(row[0])
             # статьи расходов:
-            self.cur.execute("SELECT * FROM OutItems")
-            for row in self.cur:
+            cur.execute("SELECT * FROM OutItems")
+            for row in cur:
                 self.out_items.append(row[0])
             # контакты:
-            self.cur.execute("SELECT * FROM Contacts")
-            for row in self.cur:
+            cur.execute("SELECT * FROM Contacts")
+            for row in cur:
                 self.contacts.append(row[0])
             # кредиты:
-            self.cur.execute("""
+            cur.execute("""
                         SELECT
                                C.Name,
                                C.Currency,
@@ -343,27 +353,30 @@ class Pockets:
                         FROM Credits AS C
                         LEFT JOIN CreditBalances AS B ON B.Credit = C.Name
                         """)
-            for row in self.cur:
+            for row in cur:
                 self.set_credit(row[0], row[1], row[2], row[3])
         except sqlite3.OperationalError:
-            return 1
+            returnvalue = 1
+        finally:
+            con.close()
+        return returnvalue
 
-    def __add_db_action__(self, action_name, action_id):
-        self.cur.execute(
+    def __add_db_action__(self, action_name, action_id, cur):
+        cur.execute(
                 """INSERT INTO Actions
                 VALUES (NULL, datetime('now', 'localtime'), ?, ?)
                 """,
                 (action_name, action_id)
         )
 
-    def __upd_db_balance__(self, pocket):
-        self.cur.execute(
+    def __upd_db_balance__(self, pocket, cur):
+        cur.execute(
                 "UPDATE Balances SET Balance = ? WHERE Pocket = ?",
                 (pocket.name, pocket.balance)
         )
 
-    def __upd_db_credit_balance__(self, credit):
-        self.cur.execute(
+    def __upd_db_credit_balance__(self, credit, cur):
+        cur.execute(
                 "UPDATE CreditBalances SET Balance = ? WHERE Credit = ?",
                 (credit.name, credit.balance)
         )
@@ -389,14 +402,18 @@ class Pockets:
         if not allright:
             return 1
         pc.balance += summ
-        self.__upd_db_balance__(pc)
-        self.cur.execute(
+
+        con = sqlite3.connect(self.db_name)
+        cur = con.cursor()
+        self.__upd_db_balance__(pc, cur)
+        cur.execute(
             "INSERT INTO InAction VALUES (NULL, ?, ?, ?, ?, ?, ?)",
             (action_name, pc.name, item, summ, amount, comment)
         )
-        lid = self.cur.lastrowid
-        self.__add_db_action__(action_name, lid)
-        self.con.commit()
+        lid = cur.lastrowid
+        self.__add_db_action__(action_name, lid, cur)
+        con.commit()
+        con.close()
         return 0
 
     def action_out(self, pocket, item, summ, amount = 0, comment=''):
@@ -420,15 +437,19 @@ class Pockets:
         if not allright:
             return 1
         pc.balance -= summ
-        self.__upd_db_balance__(pc)
-        self.cur.execute(
+
+        con = sqlite3.connect(self.db_name)
+        cur = con.cursor()
+        self.__upd_db_balance__(pc, cur)
+        cur.execute(
             "INSERT INTO OutAction VALUES (NULL, ?, ?, ?, ?, ?, ?)",
             (action_name, pc.name, item, summ, amount, comment)
         )
-        self.con.commit()
-        lid = self.cur.lastrowid
-        self.__add_db_action__(action_name, lid)
-        self.con.commit()
+        con.commit()
+        lid = cur.lastrowid
+        self.__add_db_action__(action_name, lid, cur)
+        con.commit()
+        con.close()
         return 0
 
     def action_between(self, pocketout, pocketin, summ, comment=''):
@@ -462,15 +483,19 @@ class Pockets:
             return 1
         pcout.balance -= summ
         pcin.balance += summ
-        self.__upd_db_balance__(pcin)
-        self.__upd_db_balance__(pcout)
-        self.cur.execute(
+
+        con = sqlite3.connect(self.db_name)
+        cur = con.cursor()
+        self.__upd_db_balance__(pcin, cur)
+        self.__upd_db_balance__(pcout, cur)
+        cur.execute(
             "INSERT INTO BetweenAction VALUES (NULL, ?, ?, ?, ?, ?)",
             (action_name, pcout.name, pcin.name, summ, comment)
         )
-        lid = self.cur.lastrowid
-        self.__add_db_action__(action_name, lid)
-        self.con.commit()
+        lid = cur.lastrowid
+        self.__add_db_action__(action_name, lid, cur)
+        con.commit()
+        con.close()
         return 0
 
     def action_exchange(self, pocketout, pocketin, summout, summin, coment=''):
@@ -506,15 +531,19 @@ class Pockets:
             return 1
         pcout.balance -= summout
         pcin.balance += summin
-        self.__upd_db_balance__(pcin)
-        self.__upd_db_balance__(pcout)
-        self.cur.execute(
+
+        con = sqlite3.connect(self.db_name)
+        cur = con.cursor()
+        self.__upd_db_balance__(pcin, cur)
+        self.__upd_db_balance__(pcout, cur)
+        cur.execute(
             "INSERT INTO ExchangeAction VALUES (NULL, ?, ?, ?, ?, ?, ?)",
             (action_name, pcout.name, pcin.name, summout, summin, coment)
         )
-        lid = self.cur.lastrowid
-        self.__add_db_action__(action_name, lid)
-        self.con.commit()
+        lid = cur.lastrowid
+        self.__add_db_action__(action_name, lid, cur)
+        con.commit()
+        con.close()
         return 0
 
     def action_credit1_in(self, pocket, credit, summ, addit_summ, comment=''):
@@ -549,15 +578,19 @@ class Pockets:
             return 1
         cr.balance -= summ
         pc.balance += (summ - addit_summ)
-        self.__upd_db_balance__(pc)
-        self.__upd_db_credit_balance__(cr)
-        self.cur.execute(
+
+        con = sqlite3.connect(self.db_name)
+        cur = con.cursor()
+        self.__upd_db_balance__(pc, cur)
+        self.__upd_db_credit_balance__(cr, cur)
+        cur.execute(
             "INSERT INTO Сredit1InAction VALUES (NULL, ?, ?, ?, ?, ?, ?)",
             (action_name, pc.name, cr.name, summ, addit_summ, comment)
         )
-        lid = self.cur.lastrowid
-        self.__add_db_action__(action_name, lid)
-        self.con.commit()
+        lid = cur.lastrowid
+        self.__add_db_action__(action_name, lid, cur)
+        con.commit()
+        con.close()
         return 0
 
     def action_credit2_in(self, pocket, credit, summ, addit_summ, comment=''):
@@ -592,15 +625,19 @@ class Pockets:
             return 1
         cr.balance -= summ
         pc.balance += summ
-        self.__upd_db_balance__(pc)
-        self.__upd_db_credit_balance__(cr)
-        self.cur.execute(
+
+        con = sqlite3.connect(self.db_name)
+        cur = con.cursor()
+        self.__upd_db_balance__(pc, cur)
+        self.__upd_db_credit_balance__(cr, cur)
+        cur.execute(
             "INSERT INTO Сredit2InAction VALUES (NULL, ?, ?, ?, ?, ?)",
             (action_name, pc.name, cr.name, summ, comment)
         )
-        lid = self.cur.lastrowid
-        self.__add_db_action__(action_name, lid)
-        self.con.commit()
+        lid = cur.lastrowid
+        self.__add_db_action__(action_name, lid, cur)
+        con.commit()
+        con.close()
         return 0
 
     def action_credit1_out(self, pocket, credit,
@@ -638,16 +675,20 @@ class Pockets:
             return 1
         cr.balance += summ
         pc.balance -= (summ + addit_summ + percent_sum)
-        self.__upd_db_balance__(pc)
-        self.__upd_db_credit_balance__(cr)
-        self.cur.execute(
+
+        con = sqlite3.connect(self.db_name)
+        cur = con.cursor()
+        self.__upd_db_balance__(pc, cur)
+        self.__upd_db_credit_balance__(cr, cur)
+        cur.execute(
             "INSERT INTO Сredit1OutAction VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)",
             (action_name, pc.name, cr.name,
              summ, addit_summ, percent_sum, comment)
         )
-        lid = self.cur.lastrowid
-        self.__add_db_action__(action_name, lid)
-        self.con.commit()
+        lid = cur.lastrowid
+        self.__add_db_action__(action_name, lid, cur)
+        con.commit()
+        con.close()
         return 0
 
     def action_credit2_out(self, pocket, credit, summ, addit_summ, comment=''):
@@ -682,15 +723,19 @@ class Pockets:
             return 1
         cr.balance += summ
         pc.balance -= (summ + addit_summ)
-        self.__upd_db_balance__(pc)
-        self.__upd_db_credit_balance__(cr)
-        self.cur.execute(
+
+        con = sqlite3.connect(self.db_name)
+        cur = con.cursor()
+        self.__upd_db_balance__(pc, cur)
+        self.__upd_db_credit_balance__(cr, cur)
+        cur.execute(
             "INSERT INTO Сredit2OutAction VALUES (NULL, ?, ?, ?, ?, ?, ?)",
             (action_name, pc.name, cr.name, summ, addit_summ, comment)
         )
-        lid = self.cur.lastrowid
-        self.__add_db_action__(action_name, lid)
-        self.con.commit()
+        lid = cur.lastrowid
+        self.__add_db_action__(action_name, lid, cur)
+        con.commit()
+        con.close()
         return 0
 
     # хранение настроек
@@ -700,7 +745,9 @@ class Pockets:
             pass_value = password
         else:
             pass_value = base64.standard_b64encode(password)
-        self.cur.executescript("""
+        con = sqlite3.connect(self.db_name)
+        cur = con.cursor()
+        cur.executescript("""
             DROP
                 TABLE IF EXISTS Settings;
             CREATE TABLE Settings(OwnerName VARCHAR(50),
@@ -708,19 +755,23 @@ class Pockets:
                                   Login VARCHAR(50),
                                   Pass VARCHAR(300));
                                   """)
-        self.cur.execute("INSERT INTO Settings VALUES (?, ?, ?, ?)",
+        cur.execute("INSERT INTO Settings VALUES (?, ?, ?, ?)",
                          (1, url_wsdl, login, pass_value))
-        self.con.commit()
+        con.commit()
+        con.close()
 
     def get_settings(self):
+        con = sqlite3.connect(self.db_name)
+        cur = con.cursor()
         try:
-            self.cur.execute("SELECT * FROM Settings")
+            cur.execute("SELECT * FROM Settings")
         except sqlite3.OperationalError:
             return 1
-        for row in self.cur:
+        for row in cur:
             self.settings['URL'] = row[1]
             self.settings['Login'] = row[2]
             self.settings['Pass'] = row[3]
+        con.close()
         return 0
 
     # передача и получение данных посредством веб-сервиса
@@ -756,6 +807,7 @@ class Pockets:
                 self.set_credit(*credit_data.data)
         except WebFault:
             return -1
+        self.recreate_refs()
         return 0
 
     def prepare_send_data(self):
@@ -764,8 +816,11 @@ class Pockets:
         :return: -1 в случае неудачного запроса к сервису, иначе 0.
         """
         # готовим данные для отправки
+        con = sqlite3.connect(self.db_name)
+        cur = con.cursor()
+        returnvalue = 0
         try:
-            self.cur.execute("""
+            cur.execute("""
                 SELECT
                     A.Id,
                     A.Action_name,
@@ -898,14 +953,17 @@ class Pockets:
                 ORDER BY A.Id
                 """)
         except sqlite3.OperationalError:
-            return 1
+            returnvalue = 1
         data = []
-        for row in self.cur:
+        if returnvalue == 1:
+            return data
+        for row in cur:
             values = [self.settings['Login'], self.actions_names[row[1]]]
             for i in xrange(8):
                 values.append(row[i+2])
             data.append(values)
-        self.data_to_send = data
+        con.close()
+        return data
 
         # todo по кредитам допрасходы и проценты
 
@@ -914,7 +972,7 @@ class Pockets:
 
         :return: -1 в случае неудачного запроса к сервису, иначе 0.
         """
-        data = self.data_to_send
+        data = self.prepare_send_data()
         if len(data) == 0:
             return 0
         act, remote_functions, remote_types = self.soap_service_factory()
@@ -928,7 +986,8 @@ class Pockets:
             remote_result = remote_functions.Frompy21c(remote_data)
         except WebFault:
             return -1
-        self.data_to_send = []
+        if remote_result == 'Success':
+            self.recreate_docs()
         return 0
 
     # TODO если БД не прокатит, то чтение инфы о кошельках и остатках из файлов

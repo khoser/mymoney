@@ -307,15 +307,11 @@ class BackPanel(BoxLayout):
         self.add_widget(button4)
         self.add_widget(button5)
 
-    def on_kostyl(self, *args):
-        self.pcs.recreate_docs()
-        self.pcs.recreate_refs()
+
 
     def to_sync_in_thread(self):
-        n1 = self.pcs.send_soap_data()
-        n2 = self.pcs.get_all_soap_data()
-        if n1 + n2 == 0:
-            self.kostyl *= -1
+        self.pcs.send_soap_data()
+        self.pcs.get_all_soap_data()
 
     def do_synchronization(self, *args):
         self.pcs.prepare_send_data()
