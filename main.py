@@ -20,9 +20,6 @@ from kivy.uix.spinner import Spinner
 from kivy.uix.textinput import TextInput
 from functools import partial
 
-import multiprocessing
-import threading
-
 class MyFace(StackLayout):
     money_label_text = StringProperty('')
 
@@ -308,18 +305,8 @@ class BackPanel(BoxLayout):
         self.add_widget(button4)
         self.add_widget(button5)
 
-
-
-    def to_sync_in_thread(self):
-        self.pcs.send_soap_data()
-        self.pcs.get_all_soap_data()
-
     def do_synchronization(self, *args):
-        self.pcs.prepare_send_data()
-        #t1 = multiprocessing.Process(target=self.to_sync_in_thread)
-        t1 = threading.Thread(target=self.to_sync_in_thread)
-        t1.start();
-        t1.join();
+        self.pcs.soap_data()
 
 
 class MyMoney(App):
@@ -337,7 +324,8 @@ class MyMoney(App):
         return navi_drawer
 
     def on_stop(self):
-        self.face.pcs.close_db()
+        pass
+        # self.face.pcs.close_db()
 
 if __name__ == '__main__':
     Builder.load_file('main.kv')

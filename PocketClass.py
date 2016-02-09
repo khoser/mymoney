@@ -7,6 +7,8 @@
 import base64
 from threading import Thread
 import PocketDB
+from suds import WebFault
+
 
 class Decor(object):
 
@@ -86,6 +88,7 @@ class Pockets:
             8: 'Credit2Out',
         }
         self.settings = {'URL': '', 'Login': '', 'Pass': ''}
+        self.parsing = False
 
     @Decor.put_to_pool
     def set_pocket(self, name, currency='', balance=0):
@@ -140,7 +143,7 @@ class Pockets:
         (пере)создание базы данных
         вызывается только? при синхронизации и первичной инициации объекта
         """
-        self.db.recreate_refs()
+        self.db.recreate_refs(self)
         self.db.recreate_docs()
 
     def fill_from_db(self):
@@ -438,9 +441,31 @@ class Pockets:
 
     def get_settings(self):
         data = self.db.get_settings()
-        self.settings['URL'] = data[0]
-        self.settings['Login'] = data[1]
-        self.settings['Pass'] = data[2]
+        if data != -1:
+            self.settings['URL'] = data[0]
+            self.settings['Login'] = data[1]
+            self.settings['Pass'] = data[2]
+
+    def parse_soap_income(self, data):
+        res_data = [res for res in data]
+        self.in_items = res_data[0]
+        self.out_items = res_data[1]
+        self.contacts = res_data[2]
+        for pocket_data in res_data[3]:
+            self.set_pocket(*pocket_data.data)
+        for credit_data in res_data[4]:
+            self.set_credit(*credit_data.data)
+        self.create_db()
+        self.parsing = False
+
+    def soap_data(self):
+        if hasattr(self, 'settings'):
+            self.parsing = True
+            data = self.db.prepare_send_data()
+            self.get_settings()
+            sr = PocketDB.SoapRequests(self.settings)
+            sr.send_soap_data(data, self.parse_soap_income)
+
 
 
     # TODO если БД не прокатит, то чтение инфы о кошельках и остатках из файлов

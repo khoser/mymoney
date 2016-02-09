@@ -7,13 +7,30 @@ import sqlite3
 from suds import WebFault
 from suds.client import Client
 import base64
-from multiprocessing.pool import Pool
+from multiprocessing import Pool
 
 
 class PocketsDB():
 
     def __init__(self, db_name='MyMoney.db'):
         self.db_name = db_name
+        if self.check_first_start():
+            self.recreate_docs()
+            self.recreate_refs()
+            self.reset_settings('', '', '')
+
+    def check_first_start(self):
+        con = sqlite3.connect(self.db_name)
+        cur = con.cursor()
+        try:
+            # первый запуск уже был?
+            cur.execute("SELECT * FROM First_Table")
+        except sqlite3.OperationalError:
+            cur.execute("CREATE TABLE First_Table(Id INTEGER)")
+            return True
+        finally:
+            con.close()
+        return False
 
     def close_db(self):
         #self.con.close()
@@ -119,7 +136,7 @@ class PocketsDB():
         con.commit()
         con.close()
 
-    def recreate_refs(self):
+    def recreate_refs(self, pcs=None):
         con = sqlite3.connect(self.db_name)
         cur = con.cursor()
 
@@ -150,44 +167,45 @@ class PocketsDB():
                                  Currency VARCHAR(10));
             """)
         con.commit()
-        for pocket in self.pockets:
-            cur.execute(
-                            "INSERT INTO Pockets VALUES (?, ?)",
-                            (
-                                pocket.name,
-                                pocket.currency
+        if pcs is not None:
+            for pocket in pcs.pockets:
+                cur.execute(
+                                "INSERT INTO Pockets VALUES (?, ?)",
+                                (
+                                    pocket.name,
+                                    pocket.currency
+                                )
                             )
-                        )
-            cur.execute(
-                            "INSERT INTO Balances VALUES (?, ?)",
-                            (
-                                pocket.name,
-                                pocket.balance
+                cur.execute(
+                                "INSERT INTO Balances VALUES (?, ?)",
+                                (
+                                    pocket.name,
+                                    pocket.balance
+                                )
                             )
-                        )
-        for x in self.out_items:
-            cur.execute("INSERT INTO OutItems VALUES (?)", (x,))
-        for x in self.in_items:
-            cur.execute("INSERT INTO InItems VALUES (?)", (x,))
-        for x in self.contacts:
-            cur.execute("INSERT INTO Contacts VALUES (?)", (x,))
-        for credit in self.credits:
-            cur.execute(
-                            "INSERT INTO Credits VALUES (?, ?, ?)",
-                            (
-                                credit.name,
-                                credit.contact,
-                                credit.currency
+            for x in pcs.out_items:
+                cur.execute("INSERT INTO OutItems VALUES (?)", (x,))
+            for x in pcs.in_items:
+                cur.execute("INSERT INTO InItems VALUES (?)", (x,))
+            for x in pcs.contacts:
+                cur.execute("INSERT INTO Contacts VALUES (?)", (x,))
+            for credit in pcs.credits:
+                cur.execute(
+                                "INSERT INTO Credits VALUES (?, ?, ?)",
+                                (
+                                    credit.name,
+                                    credit.contact,
+                                    credit.currency
+                                )
                             )
-                        )
-            cur.execute(
-                            "INSERT INTO CreditBalances VALUES (?, ?)",
-                            (
-                                credit.name,
-                                credit.balance
+                cur.execute(
+                                "INSERT INTO CreditBalances VALUES (?, ?)",
+                                (
+                                    credit.name,
+                                    credit.balance
+                                )
                             )
-                        )
-        con.commit()
+            con.commit()
         con.close()
 
     def get_settings(self):
@@ -550,15 +568,19 @@ class PocketsDB():
         # кошельки:
         con = sqlite3.connect(self.db_name)
         cur = con.cursor()
-        cur.execute("""SELECT
-                              P.Name,
-                              P.Currency,
-                              B.Balance
-                       FROM Pockets AS P
-                       LEFT JOIN Balances AS B ON B.Pocket = P.Name
-                       """)
-        return_value = [[row[0], row[1], row[2]] for row in cur]
-        con.close()
+        try:
+            cur.execute("""SELECT
+                                  P.Name,
+                                  P.Currency,
+                                  B.Balance
+                           FROM Pockets AS P
+                           LEFT JOIN Balances AS B ON B.Pocket = P.Name
+                           """)
+            return_value = [[row[0], row[1], row[2]] for row in cur]
+        except sqlite3.OperationalError:
+            return_value = -1
+        finally:
+            con.close()
         return return_value
 
     def get_items_in(self):
@@ -610,7 +632,6 @@ class PocketsDB():
 class SoapRequests:
 
     def __init__(self, settings):
-        self.p = Pool(processes=6)
         self.settings = settings
 
     def _soap_service_factory(self):
@@ -624,25 +645,41 @@ class SoapRequests:
             return -1
         return 0, client.service[0], client.factory
 
-    def send_soap_data(self, data, callback):
+    def send_soap_data(self, data, to_callback, no_multi = False):
         """функция передает данные сервису 1С (веб-сервису)
 
         :return: -1 в случае неудачного запроса к сервису, иначе 0.
         """
         # data = self.prepare_send_data()
+
+        def get_data():
+            self._get_soap_data(to_callback, no_multi)
+
         if len(data) == 0:
+            get_data()
             return 0
         act, remote_functions, remote_types = self._soap_service_factory()
         if act == -1:
             return -1
+
+        def do_remote_action(arg):
+            return remote_functions.Frompy21c(arg)
+
         remote_data = remote_types.create('ns1:arr')
         for data_res in data:
             remote_data.data.append(remote_types.create('ns1:arr'))
             remote_data.data[len(remote_data.data)-1].data = data_res
         try:
-            remote_result = self.p.map_async(remote_functions.Frompy21c,
-                                             (remote_data,), callback)
-            remote_result.wait()
+            if no_multi:
+                do_remote_action(remote_data)
+                get_data()
+            else:
+                p = Pool(processes=6)
+                remote_result = p.map_async(do_remote_action,
+                                            (remote_data,), callback=get_data)
+                remote_result.wait()
+                p.close()
+                p.join()
         except WebFault:
             return -1
         # if remote_result[0] == 'Success':
@@ -650,7 +687,7 @@ class SoapRequests:
             # self.recreate_docs()
         return 0
 
-    def get_soap_data(self, callback):
+    def _get_soap_data(self, to_callback, no_multi=False):
         """функция получает от сервиса 1С (веб-сервиса) данные
 
         :return: -1 в случае неудачного запроса к сервису, иначе 0.
@@ -659,15 +696,31 @@ class SoapRequests:
         act, remote_functions, remote_types = self._soap_service_factory()
         if act == -1:
             return -1
+
+        def do_remote_action_(arg):
+            return_val = remote_functions.From1c2py(arg).data
+            return return_val
+
         try:
             send_names = ['in_items',
                           'out_items',
                           'contacts',
                           'pockets',
                           'credits']
-            results = self.p.map_async(remote_functions.From1c2py, send_names,
-                                       callback)
-            results.wait()
+            if no_multi:
+                results = []
+                for i in send_names:
+                    results.append(do_remote_action_(i))
+                to_callback(results)
+            else:
+                p = Pool(processes=6)
+                results = p.map_async(do_remote_action_, send_names,
+                                      callback=to_callback)
+                results.wait()
+                # results = p.map(do_remote_action_, send_names)
+                # to_callback(results)
+                p.close()
+                p.join()
             # res_data = [res.data for res in results]
             # self.in_items = remote_functions.From1c2py('in_items').data
             # self.out_items = remote_functions.From1c2py('out_items').data
