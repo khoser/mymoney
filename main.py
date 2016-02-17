@@ -20,6 +20,7 @@ from kivy.uix.spinner import Spinner
 from kivy.uix.textinput import TextInput
 from functools import partial
 
+
 class MyFace(StackLayout):
     money_label_text = StringProperty('')
 

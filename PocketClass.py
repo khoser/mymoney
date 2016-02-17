@@ -88,7 +88,7 @@ class Pockets:
             8: 'Credit2Out',
         }
         self.settings = {'URL': '', 'Login': '', 'Pass': ''}
-        self.parsing = False
+        # self.parsing = False
 
     @Decor.put_to_pool
     def set_pocket(self, name, currency='', balance=0):
@@ -155,7 +155,7 @@ class Pockets:
         for data in self.db.get_pockets():
             self.set_pocket(*data)
         # статьи доходов:
-        self.in_items = self.db.get_items_in
+        self.in_items = self.db.get_items_in()
         # статьи расходов:
         self.out_items = self.db.get_items_out()
         # контакты:
@@ -456,15 +456,39 @@ class Pockets:
         for credit_data in res_data[4]:
             self.set_credit(*credit_data.data)
         self.create_db()
-        self.parsing = False
+        # self.parsing = False
+
+    def parse_soap_income_in_items(self, data):
+        self.in_items = data
+
+    def parse_soap_income_out_items(self, data):
+        self.out_items = data
+
+    def parse_soap_income_contacts(self, data):
+        self.contacts = data
+
+    def parse_soap_income_pockets(self, data):
+        for pocket_data in data:
+            self.set_pocket(*pocket_data.data)
+
+    def parse_soap_income_credits(self, data):
+        for credit_data in data:
+            self.set_credit(*credit_data.data)
+
+    def parsing_functions(self):
+        return {'in_items': self.parse_soap_income_in_items,
+                'out_items': self.parse_soap_income_out_items,
+                'contacts': self.parse_soap_income_contacts,
+                'pockets': self.parse_soap_income_pockets,
+                'credits': self.parse_soap_income_credits}
 
     def soap_data(self):
         if hasattr(self, 'settings'):
-            self.parsing = True
+            # self.parsing = True
             data = self.db.prepare_send_data()
             self.get_settings()
             sr = PocketDB.SoapRequests(self.settings)
-            sr.send_soap_data(data, self.parse_soap_income)
+            sr.send_soap_data(data, self.parsing_functions())
 
 
 

@@ -709,14 +709,19 @@ class SoapRequests:
                           'credits']
             if no_multi:
                 results = []
-                for i in send_names:
-                    results.append(do_remote_action_(i))
+                for sn in send_names:
+                    results.append(do_remote_action_(sn))
                 to_callback(results)
             else:
-                p = Pool(processes=6)
-                results = p.map_async(do_remote_action_, send_names,
-                                      callback=to_callback)
-                results.wait()
+                p = Pool(processes=1)
+                # results = p.map_async(do_remote_action_, send_names,
+                #                       callback=to_callback)
+                # results.wait()
+                for sn in send_names:
+                    results = p.apply_async(do_remote_action_, sn,
+                                            callback=to_callback[sn])
+                    results.wait()
+
                 # results = p.map(do_remote_action_, send_names)
                 # to_callback(results)
                 p.close()
