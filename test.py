@@ -6,44 +6,24 @@
 """
 
 import PocketClass
-import os
-import sqlite3
-import base64
-try:
-    # For Python 3.0 and later
-    import urllib as urllib2
-except ImportError:
+# import os
+# import sqlite3
+# import base64
+# try:
+#     # For Python 3.0 and later
+#     import urllib as urllib2
+# except ImportError:
     # Fall back to Python 2's urllib2
-    import urllib2 as urllib2
-from httplib2 import Http
+import urllib2 as urllib2
+# from httplib2 import Http
 # import httplib
-import requests
-#from requests.auth import HTTPBasicAuth
+# import requests
+# from requests.auth import HTTPBasicAuth
 
 import unittest
 
 
 class testall(unittest.TestCase):
-
-    # def testSoap(self):
-    #     pcs = PocketClass.Pockets('MyPythonMoney.db')
-    #     pcs.get_settings()
-    #
-    #     URL = pcs.settings['URL'] + "/odata/standard.odata/AccountingRegister_ЖурналОпераций/SliceLast"
-    #     furl = "money.kter.ru"
-    #     lurl = "/money/odata/standard.odata/"
-    #     authorization = pcs.settings['Authorization']
-    #
-    #     headers = {
-    #         'Authorization': authorization
-    #     }
-    #     req = urllib2.Request(URL, None, headers)
-    #     result = urllib2.urlopen(req)
-    #
-    #     data = result.read()
-    #
-    #     print data
-    #     self.assertEqual(1,1)
 
     def test_one_pocket(self):
         # print ('test init one pocket')
@@ -114,14 +94,38 @@ class testall(unittest.TestCase):
         self.assertEqual(len(pcs.pockets),0)
 
     def test_drop_credit(self):
-        # print ('test drop pocket')
+        # print ('test drop credit')
         pcs = PocketClass.Pockets('test_db')
         args = ['Test', 'руб', 'My contact', 123]
         pcs.set_credit(*args)
         pcs._drop_credit('Test')
         self.assertEqual(len(pcs.credits),0)
         
-        
+    def test_odata(self):
+        print ('test odata')
+        pcs = PocketClass.Pockets('MyPythonMoney.db')
+        pcs.get_settings()
+
+        ourl = '/odata/standard.odata'
+        journ = u'\xd0\x96\xd1\x83\xd1\x80\xd0\xbd\xd0\xb0\xd0\xbb\xd0\x9e\xd0\xbf\xd0\xb5\xd1\x80\xd0\xb0\xd1\x86\xd0\xb8\xd0\xb9'
+        reg_slice = '/AccountingRegister_%s/SliceLast' % journ
+        # reg_slice = unicode(reg_slice, 'utf-8')
+        URL = pcs.settings['URL']
+        # furl = "money.kter.ru"
+        # lurl = "/money/odata/standard.odata/"
+        full_url = URL + ourl + reg_slice
+        authorization = pcs.settings['Authorization']
+
+        headers = {
+            'Authorization': authorization
+        }
+        req = urllib2.Request(full_url, None, headers)
+        result = urllib2.urlopen(req)
+
+        data = result.read()
+
+        print(data)
+        self.assertEqual(1,1)
 
 
 if __name__ == '__main__':
