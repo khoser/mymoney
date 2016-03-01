@@ -4,10 +4,9 @@
 Классы, описывающие работу с базой данных и с соап-сервисом
 """
 import sqlite3
-from suds import WebFault
-from suds.client import Client
 import base64
 from multiprocessing import Pool
+import os
 
 
 class PocketsDB():
@@ -17,7 +16,7 @@ class PocketsDB():
         if self.check_first_start():
             self.recreate_docs()
             self.recreate_refs()
-            self.reset_settings('', '', '')
+            self.reset_settings()
 
     def check_first_start(self):
         con = sqlite3.connect(self.db_name)
@@ -35,6 +34,9 @@ class PocketsDB():
     def close_db(self):
         #self.con.close()
         pass
+
+    def _drops(self):
+        os.remove(self.db_name)
 
     def recreate_docs(self):
         """
@@ -216,11 +218,11 @@ class PocketsDB():
         except sqlite3.OperationalError:
             return -1
         for row in cur:
-            return_value = [row[i] for i in range(1,4)]
+            return_value = [row[i] for i in range(1, 3)]
         con.close()
         return return_value
 
-    def reset_settings(self, url_wsdl, login, password):
+    def reset_settings(self, url_wsdl='', authorization=''):
         con = sqlite3.connect(self.db_name)
         cur = con.cursor()
         cur.executescript("""
@@ -228,11 +230,10 @@ class PocketsDB():
                 TABLE IF EXISTS Settings;
             CREATE TABLE Settings(OwnerName VARCHAR(50),
                                   Url_wsdl VARCHAR(300),
-                                  Login VARCHAR(50),
-                                  Pass VARCHAR(300));
+                                  Authorization VARCHAR(100));
                                   """)
-        cur.execute("INSERT INTO Settings VALUES (?, ?, ?, ?)",
-                         (1, url_wsdl, login, password))
+        cur.execute("INSERT INTO Settings VALUES (?, ?, ?)",
+                         (1, url_wsdl, authorization))
         con.commit()
         con.close()
 
@@ -419,7 +420,8 @@ class PocketsDB():
         cur = con.cursor()
         returnvalue = 0
         try:
-            cur.execute("""
+            cur.execute(
+                """
                 SELECT
                     A.Id,
                     A.Action_name,
@@ -550,7 +552,8 @@ class PocketsDB():
                 ) AS B
                     ON A.Action_name = B.Action_name and A.ActionId = B.Id
                 ORDER BY A.Id
-                """)
+                """
+            )
         except sqlite3.OperationalError:
             returnvalue = 1
         data = []
@@ -575,7 +578,8 @@ class PocketsDB():
                                   B.Balance
                            FROM Pockets AS P
                            LEFT JOIN Balances AS B ON B.Pocket = P.Name
-                           """)
+                           """
+                       )
             return_value = [[row[0], row[1], row[2]] for row in cur]
         except sqlite3.OperationalError:
             return_value = -1
@@ -618,7 +622,8 @@ class PocketsDB():
                                   B.Balance
                            FROM Credits AS C
                            LEFT JOIN CreditBalances AS B ON B.Credit = C.Name
-                           """)
+                           """
+                       )
             return_value = [[row[0], row[1], row[2], row[3]] for row in cur]
         except sqlite3.OperationalError:
             return_value = 1
@@ -629,11 +634,12 @@ class PocketsDB():
 
 # передача и получение данных посредством веб-сервиса
 
-class SoapRequests:
+class ODataRequests:
+    # ToDo: Переписать SOAP в OData
 
     def __init__(self, settings):
         self.settings = settings
-
+'''
     def _soap_service_factory(self):
         try:
             client = Client(self.settings['URL'],
@@ -740,3 +746,4 @@ class SoapRequests:
             return -1
         # self.recreate_refs()
         return res_data
+'''

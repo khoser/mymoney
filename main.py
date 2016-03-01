@@ -249,7 +249,7 @@ class AuthorizationPopUp(BoxLayout):
         self.add_widget(self.text_input1)
         label1 = Label(text='Login:')
         self.add_widget(label1)
-        self.text_input2 = TextInput(text=self.pcs.settings['Login'])
+        self.text_input2 = TextInput()
         self.add_widget(self.text_input2)
         label1 = Label(text='Password:')
         self.add_widget(label1)

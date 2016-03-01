@@ -5,30 +5,19 @@
 Классы, описывающие кошельки и их поведение
 """
 import base64
-from threading import Thread
 import PocketDB
-from suds import WebFault
-
-
-class Decor(object):
-
-    @staticmethod
-    def put_to_pool(func):
-        def wrapper(*args):
-            #print 'added', func.__name__
-            th = Thread(target=func, args=args)
-            th.start()
-            th.join()
-        return wrapper
 
 
 class OnePocket:
     """Один кошелек со своей валютой и баллансом"""
-    def __init__(self, name, currency, balance=0):
+    def __init__(self, name, currency, balance=0, **kwargs):
         self.name = name
         self.currency = currency
         self.balance = 0
         self.set_balance(balance)
+        self.kwargs = {}
+        for i in kwargs:
+            self.kwargs[i] = kwargs[i]
 
     def set_balance(self, balance):
         # изменение баланса
@@ -44,12 +33,15 @@ class OnePocket:
 
 class OneCredit:
     """Один кредит со своими валютой, контактом и баллансом"""
-    def __init__(self, name, currency, contact, balance=0):
+    def __init__(self, name, currency, contact, balance=0, **kwargs):
         self.name = name
         self.currency = currency
         self.contact = contact
         self.balance = balance
         self.set_balance(balance)
+        self.kwargs = {}
+        for i in kwargs:
+            self.kwargs[i] = kwargs[i]
 
     def set_balance(self, balance):
         # изменение баланса
@@ -90,8 +82,10 @@ class Pockets:
         self.settings = {'URL': '', 'Login': '', 'Pass': ''}
         # self.parsing = False
 
-    @Decor.put_to_pool
-    def set_pocket(self, name, currency='', balance=0):
+    def _drop_db(self):
+        self.db._drops()
+
+    def set_pocket(self, name, currency='', balance=0, **kwargs):
         # добавление еще одного кошелька в список
         # или обновление баланса существующего кошелька
         exist = False
@@ -100,10 +94,21 @@ class Pockets:
                 exist = True
                 x.set_balance(balance)
         if not exist:
-            self.pockets.append(OnePocket(name, currency, balance))
+            self.pockets.append(OnePocket(name, currency, balance, **kwargs))
 
-    @Decor.put_to_pool
-    def set_credit(self, name, currency, contact, balance=0):
+    def _drop_pocket(self, name):
+        # удаление кошелька из списка
+        for i in range(len(self.pockets)):
+            if self.pockets[i].name == name:
+                self.pockets.remove(self.pockets[i])
+
+    def _drop_credit(self, name):
+        # удаление кредита из списка
+        for i in range(len(self.credits)):
+            if self.credits[i].name == name:
+                self.credits.remove(self.credits[i])
+
+    def set_credit(self, name, currency, contact, balance=0, **kwargs):
         # добавление еще одного кредита в список
         # или обновление баланса существующего кредита
         exist = False
@@ -112,7 +117,9 @@ class Pockets:
                 exist = True
                 x.set_balance(balance)
         if not exist:
-            self.credits.append(OneCredit(name, currency, contact, balance))
+            self.credits.append(
+                OneCredit(name, currency, contact, balance, **kwargs)
+            )
 
     def get_info(self):
         # вывод информации в виде строки
@@ -429,22 +436,21 @@ class Pockets:
 
     # хранение настроек
 
-    def set_settings(self, url_wsdl, login, password, pass_in_64=False):
-        if pass_in_64:
-            pass_value = password
-        else:
-            pass_value = base64.standard_b64encode(password)
+    def set_settings(self, url_wsdl, login, password):
         self.settings['URL'] = url_wsdl
-        self.settings['Login'] = login
-        self.settings['Pass'] = pass_value
-        self.db.reset_settings(url_wsdl, login, pass_value)
+        authorization = 'Basic %s' % base64.encodestring('%s:%s' % (login,
+                                                                    password)
+                                                         ).strip()
+        self.settings['Authorization'] = authorization
+        self.db.reset_settings(url_wsdl, authorization)
 
     def get_settings(self):
         data = self.db.get_settings()
         if data != -1:
             self.settings['URL'] = data[0]
-            self.settings['Login'] = data[1]
-            self.settings['Pass'] = data[2]
+            self.settings['Authorization'] = data[1]
+
+    # ToDo: переписать на OData
 
     def parse_soap_income(self, data):
         res_data = [res for res in data]
