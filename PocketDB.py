@@ -342,7 +342,7 @@ class PocketsDB():
         con = sqlite3.connect(self.db_name)
         cur = con.cursor()
         cur.execute(
-            "INSERT INTO Сredit1InAction VALUES (NULL, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO Credit1InAction VALUES (NULL, ?, ?, ?, ?, ?, ?)",
             (action_name, pocket_name, credit_name, summ, addit_summ, comment)
         )
         lid = cur.lastrowid
@@ -360,7 +360,7 @@ class PocketsDB():
         con = sqlite3.connect(self.db_name)
         cur = con.cursor()
         cur.execute(
-            "INSERT INTO Сredit2InAction VALUES (NULL, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO Credit2InAction VALUES (NULL, ?, ?, ?, ?, ?, ?)",
             (action_name, pocket_name, credit_name, summ, addit_summ, comment)
         )
         lid = cur.lastrowid
@@ -378,7 +378,7 @@ class PocketsDB():
         con = sqlite3.connect(self.db_name)
         cur = con.cursor()
         cur.execute(
-            "INSERT INTO Сredit1OutAction VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO Credit1OutAction VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)",
             (action_name, pocket_name, credit_name,
              summ, addit_summ, percent_sum, comment)
         )
@@ -397,7 +397,7 @@ class PocketsDB():
         con = sqlite3.connect(self.db_name)
         cur = con.cursor()
         cur.execute(
-            "INSERT INTO Сredit2OutAction VALUES (NULL, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO Credit2OutAction VALUES (NULL, ?, ?, ?, ?, ?, ?)",
             (action_name, pocket_name, credit_name, summ, addit_summ, comment)
         )
         lid = cur.lastrowid
@@ -507,62 +507,62 @@ class PocketsDB():
                     UNION ALL
 
                     SELECT
-                        Сredit1InAction.Id AS Id,
-                        Сredit1InAction.Action_name AS Action_name,
-                        cast(Сredit1InAction.Pocket         as text) AS Value1,
-                        cast(Сredit1InAction.Credit         as text) AS Value2,
-                        cast(Сredit1InAction.Summ           as text) AS Value3,
-                        Сredit1InAction.Comment AS Value4,
+                        Credit1InAction.Id AS Id,
+                        Credit1InAction.Action_name AS Action_name,
+                        cast(Credit1InAction.Pocket         as text) AS Value1,
+                        cast(Credit1InAction.Credit         as text) AS Value2,
+                        cast(Credit1InAction.Summ           as text) AS Value3,
+                        Credit1InAction.Comment AS Value4,
                         cast(Credits.Contact                as text) AS Value5,
-                        cast(Сredit1InAction.AdditionalSumm as text) AS Value6,
+                        cast(Credit1InAction.AdditionalSumm as text) AS Value6,
                         '-' AS Value7
-                    FROM Сredit1InAction as Сredit1InAction
-                        LEFT JOIN Credits as Credits ON Credits.Name = Сredit1InAction.Credit
+                    FROM Credit1InAction as Credit1InAction
+                        LEFT JOIN Credits as Credits ON Credits.Name = Credit1InAction.Credit
 
                     UNION ALL
 
                     SELECT
-                        Сredit1OutAction.Id AS Id,
-                        Сredit1OutAction.Action_name AS Action_name,
-                        cast(Сredit1OutAction.Pocket            as text) AS Value1,
-                        cast(Сredit1OutAction.Credit            as text) AS Value2,
-                        cast(Сredit1OutAction.Summ              as text) AS Value3,
-                        Сredit1OutAction.Comment AS Value4,
+                        Credit1OutAction.Id AS Id,
+                        Credit1OutAction.Action_name AS Action_name,
+                        cast(Credit1OutAction.Pocket            as text) AS Value1,
+                        cast(Credit1OutAction.Credit            as text) AS Value2,
+                        cast(Credit1OutAction.Summ              as text) AS Value3,
+                        Credit1OutAction.Comment AS Value4,
                         cast(Credits.Contact                    as text) AS Value5,
-                        cast(Сredit1OutAction.AdditionalSumm    as text) AS Value6,
-                        cast(Сredit1OutAction.PercentSumm       as text) AS Value7
-                    FROM Сredit1OutAction as Сredit1OutAction
-                        LEFT JOIN Credits as Credits ON Credits.Name = Сredit1OutAction.Credit
+                        cast(Credit1OutAction.AdditionalSumm    as text) AS Value6,
+                        cast(Credit1OutAction.PercentSumm       as text) AS Value7
+                    FROM Credit1OutAction as Credit1OutAction
+                        LEFT JOIN Credits as Credits ON Credits.Name = Credit1OutAction.Credit
 
                     UNION ALL
 
                     SELECT
-                        Сredit2InAction.Id AS Id,
-                        Сredit2InAction.Action_name AS Action_name,
-                        cast(Сredit2InAction.Pocket         as text) AS Value1,
-                        cast(Сredit2InAction.Credit         as text) AS Value2,
-                        cast(Сredit2InAction.Summ           as text) AS Value3,
-                        Сredit2InAction.Comment AS Value4,
+                        Credit2InAction.Id AS Id,
+                        Credit2InAction.Action_name AS Action_name,
+                        cast(Credit2InAction.Pocket         as text) AS Value1,
+                        cast(Credit2InAction.Credit         as text) AS Value2,
+                        cast(Credit2InAction.Summ           as text) AS Value3,
+                        Credit2InAction.Comment AS Value4,
                         cast(Credits.Contact                as text) AS Value5,
-                        cast(Сredit2InAction.AdditionalSumm as text) AS Value6,
+                        cast(Credit2InAction.AdditionalSumm as text) AS Value6,
                         '-' AS Value7
-                    FROM Сredit2InAction as Сredit2InAction
-                        LEFT JOIN Credits as Credits ON Credits.Name = Сredit2InAction.Credit
+                    FROM Credit2InAction as Credit2InAction
+                        LEFT JOIN Credits as Credits ON Credits.Name = Credit2InAction.Credit
 
                     UNION ALL
 
                     SELECT
-                        Сredit2OutAction.Id AS Id,
-                        Сredit2OutAction.Action_name AS Action_name,
-                        cast(Сredit2OutAction.Pocket as text) AS Value1,
-                        cast(Сredit2OutAction.Credit as text) AS Value2,
-                        cast(Сredit2OutAction.Summ as text) AS Value3,
-                        Сredit2OutAction.Comment AS Value4,
+                        Credit2OutAction.Id AS Id,
+                        Credit2OutAction.Action_name AS Action_name,
+                        cast(Credit2OutAction.Pocket as text) AS Value1,
+                        cast(Credit2OutAction.Credit as text) AS Value2,
+                        cast(Credit2OutAction.Summ as text) AS Value3,
+                        Credit2OutAction.Comment AS Value4,
                         cast(Credits.Contact as text) AS Value5,
-                        cast(Сredit2OutAction.AdditionalSumm as text) AS Value6,
+                        cast(Credit2OutAction.AdditionalSumm as text) AS Value6,
                         '-' AS Value7
-                    FROM Сredit2OutAction as Сredit2OutAction
-                        LEFT JOIN Credits as Credits ON Credits.Name = Сredit2OutAction.Credit
+                    FROM Credit2OutAction as Credit2OutAction
+                        LEFT JOIN Credits as Credits ON Credits.Name = Credit2OutAction.Credit
 
                 ) AS B
                     ON A.Action_name = B.Action_name and A.ActionId = B.Id

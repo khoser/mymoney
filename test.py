@@ -32,8 +32,6 @@ class testall(unittest.TestCase):
         pdb = PocketDB.PocketsDB('test_db')
         self.assertFalse(pdb.check_first_start())
 
-        con = sqlite3.connect(pdb.db_name)
-        cur = con.cursor()
         table_names = [u'Pockets',
                        u'Balances',
                        u'CreditBalances',
@@ -53,8 +51,9 @@ class testall(unittest.TestCase):
                        u'Credit2OutAction']
         table_names.sort()
         return_value = []
+        con = sqlite3.connect(pdb.db_name)
+        cur = con.cursor()
         try:
-            # первый запуск уже был?
             cur.execute("""SELECT name FROM sqlite_master
                         WHERE type='table' AND name in (%s)
                         """%(', '.join('?' for _ in table_names)), (table_names)
@@ -66,6 +65,57 @@ class testall(unittest.TestCase):
         con.close()
         return_value.sort()
         self.assertListEqual(table_names, return_value)
+        pdb._drops()
+
+    def test_all_actions(self):
+        pdb = PocketDB.PocketsDB('test_db')
+        pdb.add_action(2,3)
+        con = sqlite3.connect(pdb.db_name)
+        cur = con.cursor()
+        cur.execute("SELECT * FROM Actions")
+        for row in cur:
+            self.assertEquals(row[2],2)
+            self.assertEquals(row[3],3)
+        pocket1 = u'pocket1'
+        pocket2 = u'pocket2'
+        credit1 = u'for one day'
+        contact1 = u'my friend'
+        item1 = u'item1'
+        item2 = u'item2'
+        sum1 = 123.45
+        sum2 = 456.78
+        amount1 = 1.0
+        amount2 = 2.0
+        act_data = [[pocket1, item1, sum1, amount1, u'in'],
+                    [pocket1, item1, sum1, amount1, u'out'],
+                    [pocket1, pocket2, sum1, u'between'],
+                    [pocket1, pocket2, sum1, sum2, u'exchange'],
+                    [pocket1, credit1, sum1, sum2, u'get'],
+                    [pocket1, credit1, sum1, sum2, u'give'],
+                    [pocket1, credit1, sum1, sum2, amount1, u'give back'],
+                    [pocket1, credit1, sum1, sum2, u'get back']
+                    ]
+        table_names = ['InAction',
+                       'OutAction',
+                       'BetweenAction',
+                       'ExchangeAction',
+                       'Credit1InAction',
+                       'Credit2InAction',
+                       'Credit1OutAction',
+                       'Credit2OutAction']
+        pdb.action_in(*act_data[0])
+        pdb.action_out(*act_data[1])
+        pdb.action_between(*act_data[2])
+        pdb.action_exchange(*act_data[3])
+        pdb.action_credit1_in(*act_data[4])
+        pdb.action_credit2_in(*act_data[5])
+        pdb.action_credit1_out(*act_data[6])
+        pdb.action_credit2_out(*act_data[7])
+        for i in range(8):
+            cur.execute("SELECT * FROM %s" % table_names[i])
+            for row in cur:
+                self.assertListEqual(act_data[i], [x for x in row[2:]])
+        con.close()
         pdb._drops()
 
 
@@ -153,7 +203,6 @@ class testall(unittest.TestCase):
 
         ourl = '/odata/standard.odata'
         jformat = '/?$format=json'
-        # journ = '\xd0\x96\xd1\x83\xd1\x80\xd0\xbd\xd0\xb0\xd0\xbb\xd0\x9e\xd0\xbf\xd0\xb5\xd1\x80\xd0\xb0\xd1\x86\xd0\xb8\xd0\xb9'
         journ = 'ЖурналОпераций'
         reg_slice = '/AccountingRegister_%s/Balance' % urllib2.quote(journ)
         # reg_slice = unicode(reg_slice, 'utf-8')
