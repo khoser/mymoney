@@ -14,6 +14,7 @@ class PocketsDB():
     def __init__(self, db_name='MyMoney.db'):
         self.db_name = db_name
         if self.check_first_start():
+            self._first_start()
             self.recreate_docs()
             self.recreate_refs()
             self.reset_settings()
@@ -21,15 +22,29 @@ class PocketsDB():
     def check_first_start(self):
         con = sqlite3.connect(self.db_name)
         cur = con.cursor()
+        return_value = False
         try:
             # первый запуск уже был?
-            cur.execute("SELECT * FROM First_Table")
+            cur.execute("""SELECT count(*) FROM sqlite_master
+                        WHERE type='table' AND name='First_Table'
+                        """
+                        )
         except sqlite3.OperationalError:
+            return_value = True
+        for row in cur:
+            return_value = row[0] == 0
+        con.close()
+        return return_value
+
+    def _first_start(self):
+        con = sqlite3.connect(self.db_name)
+        cur = con.cursor()
+        try:
             cur.execute("CREATE TABLE First_Table(Id INTEGER)")
-            return True
+        except sqlite3.OperationalError:
+            pass
         finally:
             con.close()
-        return False
 
     def close_db(self):
         #self.con.close()
@@ -94,8 +109,8 @@ class PocketsDB():
                 SummIn FLOAT,
                 Comment TEXT);
 --мы взяли в долг 5
-            DROP TABLE IF EXISTS Сredit1InAction;
-            CREATE TABLE IF NOT EXISTS Сredit1InAction(
+            DROP TABLE IF EXISTS Credit1InAction;
+            CREATE TABLE IF NOT EXISTS Credit1InAction(
                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
                 Action_name INTEGER,
                 Pocket VARCHAR(50),
@@ -104,8 +119,8 @@ class PocketsDB():
                 AdditionalSumm FLOAT,
                 Comment TEXT);
 --мы вернули долг 6
-            DROP TABLE IF EXISTS Сredit1OutAction;
-            CREATE TABLE IF NOT EXISTS Сredit1OutAction(
+            DROP TABLE IF EXISTS Credit1OutAction;
+            CREATE TABLE IF NOT EXISTS Credit1OutAction(
                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
                 Action_name INTEGER,
                 Pocket VARCHAR(50),
@@ -115,8 +130,8 @@ class PocketsDB():
                 PercentSumm FLOAT,
                 Comment TEXT);
 --нам вернули долг 7
-            DROP TABLE IF EXISTS Сredit2InAction;
-            CREATE TABLE IF NOT EXISTS Сredit2InAction(
+            DROP TABLE IF EXISTS Credit2InAction;
+            CREATE TABLE IF NOT EXISTS Credit2InAction(
                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
                 Action_name INTEGER,
                 Pocket VARCHAR(50),
@@ -125,8 +140,8 @@ class PocketsDB():
                 AdditionalSumm FLOAT,
                 Comment TEXT);
 --мы дали в долг 8
-            DROP TABLE IF EXISTS Сredit2OutAction;
-            CREATE TABLE IF NOT EXISTS Сredit2OutAction(
+            DROP TABLE IF EXISTS Credit2OutAction;
+            CREATE TABLE IF NOT EXISTS Credit2OutAction(
                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
                 Action_name INTEGER,
                 Pocket VARCHAR(50),
