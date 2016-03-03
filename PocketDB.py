@@ -9,9 +9,10 @@ from multiprocessing import Pool
 import os
 
 
-class PocketsDB():
+class PocketsDB:
 
     def __init__(self, db_name='MyMoney.db'):
+        self.__name__ = 'PocketsDB'
         self.db_name = db_name
         if self.check_first_start():
             self._first_start()
@@ -182,6 +183,13 @@ class PocketsDB():
             CREATE TABLE Credits(Name VARCHAR(50),
                                  Contact VARCHAR(50),
                                  Currency VARCHAR(10));
+--дополнительные параметры
+            DROP TABLE IF EXISTS KWArgs;
+            CREATE TABLE KWArgs(ObjName VARCHAR(50),
+                                ObjType VARCHAR(50),
+                                DataName VARCHAR(50),
+                                DataType VARCHAR(50),
+                                DataValue VARCHAR(150));
             """)
         con.commit()
         if pcs is not None:
@@ -410,7 +418,7 @@ class PocketsDB():
         cur = con.cursor()
         cur.execute(
                 "UPDATE Balances SET Balance = ? WHERE Pocket = ?",
-                (pocket_name, pocket_balance)
+                (pocket_balance, pocket_name)
         )
         con.commit()
         con.close()
@@ -420,167 +428,10 @@ class PocketsDB():
         cur = con.cursor()
         cur.execute(
                 "UPDATE CreditBalances SET Balance = ? WHERE Credit = ?",
-                (credit_name, credit_balance)
+                (credit_balance, credit_name)
         )
         con.commit()
         con.close()
-
-    def prepare_send_data(self):
-        """функция передает данные сервису 1С (веб-сервису)
-
-        :return: -1 в случае неудачного запроса к сервису, иначе 0.
-        """
-        # готовим данные для отправки
-        con = sqlite3.connect(self.db_name)
-        cur = con.cursor()
-        returnvalue = 0
-        try:
-            cur.execute(
-                """
-                SELECT
-                    A.Id,
-                    A.Action_name,
-                    A.DateTime,
-                    B.Value1,
-                    B.Value2,
-                    B.Value3,
-                    B.Value4,
-                    B.Value5,
-                    B.Value6,
-                    B.Value7
-                FROM Actions AS A
-                LEFT JOIN (
-                    SELECT
-                        InAction.Id                         AS Id,
-                        InAction.Action_name                AS Action_name,
-                        cast(InAction.Pocket    as text)    AS Value1,
-                        cast(InAction.Item      as text)    AS Value2,
-                        cast(InAction.Summ      as text)    AS Value3,
-                        InAction.Comment                    AS Value4,
-                        '-'                                  AS Value5,
-                        '-'                                  AS Value6,
-                        '-'                                  AS Value7
-                    FROM InAction as InAction
-
-                    UNION ALL
-
-                    SELECT
-                        OutAction.Id                        AS Id,
-                        OutAction.Action_name               AS Action_name,
-                        cast(OutAction.Pocket   as text)    AS Value1,
-                        cast(OutAction.Item     as text)    AS Value2,
-                        cast(OutAction.Summ     as text)    AS Value3,
-                        cast(OutAction.Amount   as text)    AS Value4,
-                        OutAction.Comment                   AS Value5,
-                        '-'                                  AS Value6,
-                        '-'                                  AS Value7
-                    FROM OutAction as OutAction
-
-                    UNION ALL
-
-                    SELECT
-                        BetweenAction.Id AS Id,
-                        BetweenAction.Action_name AS Action_name,
-                        cast(BetweenAction.PocketOut    as text) AS Value1,
-                        cast(BetweenAction.PocketIn     as text) AS Value2,
-                        cast(BetweenAction.Summ         as text) AS Value3,
-                        BetweenAction.Comment AS Value4,
-                        '-' AS Value5,
-                        '-' AS Value6,
-                        '-' AS Value7
-                    FROM BetweenAction as BetweenAction
-
-                    UNION ALL
-
-                    SELECT
-                        ExchangeAction.Id AS Id,
-                        ExchangeAction.Action_name AS Action_name,
-                        cast(ExchangeAction.PocketOut   as text) AS Value1,
-                        cast(ExchangeAction.PocketIn    as text) AS Value2,
-                        cast(ExchangeAction.SummOut     as text) AS Value3,
-                        cast(ExchangeAction.SummIn      as text) AS Value4,
-                        ExchangeAction.Comment AS Value5,
-                        '-' AS Value6,
-                        '-' AS Value7
-                    FROM ExchangeAction as ExchangeAction
-
-                    UNION ALL
-
-                    SELECT
-                        Credit1InAction.Id AS Id,
-                        Credit1InAction.Action_name AS Action_name,
-                        cast(Credit1InAction.Pocket         as text) AS Value1,
-                        cast(Credit1InAction.Credit         as text) AS Value2,
-                        cast(Credit1InAction.Summ           as text) AS Value3,
-                        Credit1InAction.Comment AS Value4,
-                        cast(Credits.Contact                as text) AS Value5,
-                        cast(Credit1InAction.AdditionalSumm as text) AS Value6,
-                        '-' AS Value7
-                    FROM Credit1InAction as Credit1InAction
-                        LEFT JOIN Credits as Credits ON Credits.Name = Credit1InAction.Credit
-
-                    UNION ALL
-
-                    SELECT
-                        Credit1OutAction.Id AS Id,
-                        Credit1OutAction.Action_name AS Action_name,
-                        cast(Credit1OutAction.Pocket            as text) AS Value1,
-                        cast(Credit1OutAction.Credit            as text) AS Value2,
-                        cast(Credit1OutAction.Summ              as text) AS Value3,
-                        Credit1OutAction.Comment AS Value4,
-                        cast(Credits.Contact                    as text) AS Value5,
-                        cast(Credit1OutAction.AdditionalSumm    as text) AS Value6,
-                        cast(Credit1OutAction.PercentSumm       as text) AS Value7
-                    FROM Credit1OutAction as Credit1OutAction
-                        LEFT JOIN Credits as Credits ON Credits.Name = Credit1OutAction.Credit
-
-                    UNION ALL
-
-                    SELECT
-                        Credit2InAction.Id AS Id,
-                        Credit2InAction.Action_name AS Action_name,
-                        cast(Credit2InAction.Pocket         as text) AS Value1,
-                        cast(Credit2InAction.Credit         as text) AS Value2,
-                        cast(Credit2InAction.Summ           as text) AS Value3,
-                        Credit2InAction.Comment AS Value4,
-                        cast(Credits.Contact                as text) AS Value5,
-                        cast(Credit2InAction.AdditionalSumm as text) AS Value6,
-                        '-' AS Value7
-                    FROM Credit2InAction as Credit2InAction
-                        LEFT JOIN Credits as Credits ON Credits.Name = Credit2InAction.Credit
-
-                    UNION ALL
-
-                    SELECT
-                        Credit2OutAction.Id AS Id,
-                        Credit2OutAction.Action_name AS Action_name,
-                        cast(Credit2OutAction.Pocket as text) AS Value1,
-                        cast(Credit2OutAction.Credit as text) AS Value2,
-                        cast(Credit2OutAction.Summ as text) AS Value3,
-                        Credit2OutAction.Comment AS Value4,
-                        cast(Credits.Contact as text) AS Value5,
-                        cast(Credit2OutAction.AdditionalSumm as text) AS Value6,
-                        '-' AS Value7
-                    FROM Credit2OutAction as Credit2OutAction
-                        LEFT JOIN Credits as Credits ON Credits.Name = Credit2OutAction.Credit
-
-                ) AS B
-                    ON A.Action_name = B.Action_name and A.ActionId = B.Id
-                ORDER BY A.Id
-                """
-            )
-        except sqlite3.OperationalError:
-            returnvalue = 1
-        data = []
-        if returnvalue == 1:
-            return data
-        for row in cur:
-            values = [self.settings['Login'], self.actions_names[row[1]]]
-            for i in xrange(8):
-                values.append(row[i+2])
-            data.append(values)
-        con.close()
-        return data
 
     def get_pockets(self):
         # кошельки:
@@ -646,6 +497,219 @@ class PocketsDB():
             con.close()
         return return_value
 
+    @staticmethod
+    def convert_to_type(str_value, str_type):
+
+        def none_type(*args):
+            return None
+
+        def bool_int(*args):
+            return bool(int(*args))
+
+        action_by_str_type = {"<type 'str'>": str,
+                              "<type 'int'>": int,
+                              "<type 'float'>": float,
+                              "<type 'long'>": long,
+                              "<type 'NoneType'>": none_type,
+                              "<type 'bool'>": bool_int}
+        return action_by_str_type[str_type](str_value)
+
+    @staticmethod
+    def convert_type_to_str(value):
+        str_type = str(type(value))
+        action_by_type = {"<type 'str'>": str,
+                          "<type 'int'>": int,
+                          "<type 'float'>": float,
+                          "<type 'long'>": long,
+                          "<type 'NoneType'>": str,
+                          "<type 'bool'>": int}
+        return str(action_by_type[str_type](value))
+
+    def dump_kwargs(self, obj, obj_type=None, **kwargs):
+        kw = kwargs
+        if hasattr(obj,'kwargs'):
+            kw = obj.kwargs
+        if hasattr(obj,'__name__'):
+            obj_type = obj.__name__
+        if kw is None or obj_type is None:
+            raise Exception('kwargs or object type is None')
+        obj_name = str(obj)
+        if hasattr(obj,'name'):
+            obj_name = obj.name
+        con = sqlite3.connect(self.db_name)
+        cur = con.cursor()
+        for k in kw:
+            try:
+                cur.execute(
+                    """DELETE FROM KWArgs
+                       WHERE ObjName = ? AND ObjType = ? AND DataName = ?""",
+                    (obj_name, obj_type, k)
+                )
+            except sqlite3.OperationalError:
+                raise Exception('kwargs dump fail')
+        # todo после удаления создаем нужные строки
+        con.close()
+
+    def get_kwargs(self, obj):
+        pass
+
+    # def prepare_send_data(self):
+    #     """функция передает данные сервису 1С (веб-сервису)
+    #
+    #     :return: -1 в случае неудачного запроса к сервису, иначе 0.
+    #     """
+    #     # готовим данные для отправки
+    #     con = sqlite3.connect(self.db_name)
+    #     cur = con.cursor()
+    #     returnvalue = 0
+    #     try:
+    #         cur.execute(
+    #             """
+    #             SELECT
+    #                 A.Id,
+    #                 A.Action_name,
+    #                 A.DateTime,
+    #                 B.Value1,
+    #                 B.Value2,
+    #                 B.Value3,
+    #                 B.Value4,
+    #                 B.Value5,
+    #                 B.Value6,
+    #                 B.Value7
+    #             FROM Actions AS A
+    #             LEFT JOIN (
+    #                 SELECT
+    #                     InAction.Id                         AS Id,
+    #                     InAction.Action_name                AS Action_name,
+    #                     cast(InAction.Pocket    as text)    AS Value1,
+    #                     cast(InAction.Item      as text)    AS Value2,
+    #                     cast(InAction.Summ      as text)    AS Value3,
+    #                     InAction.Comment                    AS Value4,
+    #                     '-'                                  AS Value5,
+    #                     '-'                                  AS Value6,
+    #                     '-'                                  AS Value7
+    #                 FROM InAction as InAction
+    #
+    #                 UNION ALL
+    #
+    #                 SELECT
+    #                     OutAction.Id                        AS Id,
+    #                     OutAction.Action_name               AS Action_name,
+    #                     cast(OutAction.Pocket   as text)    AS Value1,
+    #                     cast(OutAction.Item     as text)    AS Value2,
+    #                     cast(OutAction.Summ     as text)    AS Value3,
+    #                     cast(OutAction.Amount   as text)    AS Value4,
+    #                     OutAction.Comment                   AS Value5,
+    #                     '-'                                  AS Value6,
+    #                     '-'                                  AS Value7
+    #                 FROM OutAction as OutAction
+    #
+    #                 UNION ALL
+    #
+    #                 SELECT
+    #                     BetweenAction.Id AS Id,
+    #                     BetweenAction.Action_name AS Action_name,
+    #                     cast(BetweenAction.PocketOut    as text) AS Value1,
+    #                     cast(BetweenAction.PocketIn     as text) AS Value2,
+    #                     cast(BetweenAction.Summ         as text) AS Value3,
+    #                     BetweenAction.Comment AS Value4,
+    #                     '-' AS Value5,
+    #                     '-' AS Value6,
+    #                     '-' AS Value7
+    #                 FROM BetweenAction as BetweenAction
+    #
+    #                 UNION ALL
+    #
+    #                 SELECT
+    #                     ExchangeAction.Id AS Id,
+    #                     ExchangeAction.Action_name AS Action_name,
+    #                     cast(ExchangeAction.PocketOut   as text) AS Value1,
+    #                     cast(ExchangeAction.PocketIn    as text) AS Value2,
+    #                     cast(ExchangeAction.SummOut     as text) AS Value3,
+    #                     cast(ExchangeAction.SummIn      as text) AS Value4,
+    #                     ExchangeAction.Comment AS Value5,
+    #                     '-' AS Value6,
+    #                     '-' AS Value7
+    #                 FROM ExchangeAction as ExchangeAction
+    #
+    #                 UNION ALL
+    #
+    #                 SELECT
+    #                     Credit1InAction.Id AS Id,
+    #                     Credit1InAction.Action_name AS Action_name,
+    #                     cast(Credit1InAction.Pocket         as text) AS Value1,
+    #                     cast(Credit1InAction.Credit         as text) AS Value2,
+    #                     cast(Credit1InAction.Summ           as text) AS Value3,
+    #                     Credit1InAction.Comment AS Value4,
+    #                     cast(Credits.Contact                as text) AS Value5,
+    #                     cast(Credit1InAction.AdditionalSumm as text) AS Value6,
+    #                     '-' AS Value7
+    #                 FROM Credit1InAction as Credit1InAction
+    #                     LEFT JOIN Credits as Credits ON Credits.Name = Credit1InAction.Credit
+    #
+    #                 UNION ALL
+    #
+    #                 SELECT
+    #                     Credit1OutAction.Id AS Id,
+    #                     Credit1OutAction.Action_name AS Action_name,
+    #                     cast(Credit1OutAction.Pocket            as text) AS Value1,
+    #                     cast(Credit1OutAction.Credit            as text) AS Value2,
+    #                     cast(Credit1OutAction.Summ              as text) AS Value3,
+    #                     Credit1OutAction.Comment AS Value4,
+    #                     cast(Credits.Contact                    as text) AS Value5,
+    #                     cast(Credit1OutAction.AdditionalSumm    as text) AS Value6,
+    #                     cast(Credit1OutAction.PercentSumm       as text) AS Value7
+    #                 FROM Credit1OutAction as Credit1OutAction
+    #                     LEFT JOIN Credits as Credits ON Credits.Name = Credit1OutAction.Credit
+    #
+    #                 UNION ALL
+    #
+    #                 SELECT
+    #                     Credit2InAction.Id AS Id,
+    #                     Credit2InAction.Action_name AS Action_name,
+    #                     cast(Credit2InAction.Pocket         as text) AS Value1,
+    #                     cast(Credit2InAction.Credit         as text) AS Value2,
+    #                     cast(Credit2InAction.Summ           as text) AS Value3,
+    #                     Credit2InAction.Comment AS Value4,
+    #                     cast(Credits.Contact                as text) AS Value5,
+    #                     cast(Credit2InAction.AdditionalSumm as text) AS Value6,
+    #                     '-' AS Value7
+    #                 FROM Credit2InAction as Credit2InAction
+    #                     LEFT JOIN Credits as Credits ON Credits.Name = Credit2InAction.Credit
+    #
+    #                 UNION ALL
+    #
+    #                 SELECT
+    #                     Credit2OutAction.Id AS Id,
+    #                     Credit2OutAction.Action_name AS Action_name,
+    #                     cast(Credit2OutAction.Pocket as text) AS Value1,
+    #                     cast(Credit2OutAction.Credit as text) AS Value2,
+    #                     cast(Credit2OutAction.Summ as text) AS Value3,
+    #                     Credit2OutAction.Comment AS Value4,
+    #                     cast(Credits.Contact as text) AS Value5,
+    #                     cast(Credit2OutAction.AdditionalSumm as text) AS Value6,
+    #                     '-' AS Value7
+    #                 FROM Credit2OutAction as Credit2OutAction
+    #                     LEFT JOIN Credits as Credits ON Credits.Name = Credit2OutAction.Credit
+    #
+    #             ) AS B
+    #                 ON A.Action_name = B.Action_name and A.ActionId = B.Id
+    #             ORDER BY A.Id
+    #             """
+    #         )
+    #     except sqlite3.OperationalError:
+    #         returnvalue = 1
+    #     data = []
+    #     if returnvalue == 1:
+    #         return data
+    #     for row in cur:
+    #         values = [self.settings['Login'], self.actions_names[row[1]]]
+    #         for i in xrange(8):
+    #             values.append(row[i+2])
+    #         data.append(values)
+    #     con.close()
+    #     return data
+
 
 # передача и получение данных посредством веб-сервиса
 
@@ -653,6 +717,7 @@ class ODataRequests:
     # ToDo: Переписать SOAP в OData
 
     def __init__(self, settings):
+        self.__name__ = 'ODataRequests'
         self.settings = settings
 '''
     def _soap_service_factory(self):

@@ -11,6 +11,7 @@ import PocketDB
 class OnePocket:
     """Один кошелек со своей валютой и баллансом"""
     def __init__(self, name, currency, balance=0, **kwargs):
+        self.__name__ = 'OnePocket'
         self.name = name
         self.currency = currency
         self.balance = 0
@@ -34,6 +35,7 @@ class OnePocket:
 class OneCredit:
     """Один кредит со своими валютой, контактом и баллансом"""
     def __init__(self, name, currency, contact, balance=0, **kwargs):
+        self.__name__ = 'OneCredit'
         self.name = name
         self.currency = currency
         self.contact = contact
@@ -63,6 +65,7 @@ class Pockets:
     Список кошельков и их взаимодействия
     """
     def __init__(self, db_name='MyMoney.db'):
+        self.__name__ = 'Pockets'
         self.pockets = []
         self.out_items = []
         self.in_items = []
