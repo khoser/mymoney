@@ -7,6 +7,47 @@ import sqlite3
 import base64
 from multiprocessing import Pool
 import os
+import string
+
+
+def get_type(val):
+    str_type = str(type(val))
+    result = ''
+    for l in str_type:
+        if l in string.letters:
+            result += l
+    return result.replace(u'type', '')
+
+
+def convert_to_type(str_value, str_type):
+
+    def none_type(*args):
+        return None
+
+    def bool_int(*args):
+        return bool(int(*args))
+
+    action_by_str_type = {u'str': str,
+                          u'unicode': unicode,
+                          u'int': int,
+                          u'float': float,
+                          u'long': long,
+                          u'NoneType': none_type,
+                          u'bool': bool_int}
+    return action_by_str_type[str_type](str_value)
+
+
+def convert_type_to_str(value):
+    str_type = get_type(value)
+    action_by_type = {u'str': str,
+                      u'unicode': unicode,
+                      u'int': int,
+                      u'float': float,
+                      u'long': long,
+                      u'NoneType': str,
+                      u'bool': int}
+    print value
+    return str(action_by_type[str_type](value))
 
 
 class PocketsDB:
@@ -497,34 +538,6 @@ class PocketsDB:
             con.close()
         return return_value
 
-    @staticmethod
-    def convert_to_type(str_value, str_type):
-
-        def none_type(*args):
-            return None
-
-        def bool_int(*args):
-            return bool(int(*args))
-
-        action_by_str_type = {"<type 'str'>": str,
-                              "<type 'int'>": int,
-                              "<type 'float'>": float,
-                              "<type 'long'>": long,
-                              "<type 'NoneType'>": none_type,
-                              "<type 'bool'>": bool_int}
-        return action_by_str_type[str_type](str_value)
-
-    @staticmethod
-    def convert_type_to_str(value):
-        str_type = str(type(value))
-        action_by_type = {"<type 'str'>": str,
-                          "<type 'int'>": int,
-                          "<type 'float'>": float,
-                          "<type 'long'>": long,
-                          "<type 'NoneType'>": str,
-                          "<type 'bool'>": int}
-        return str(action_by_type[str_type](value))
-
     def dump_kwargs(self, obj, obj_type=None, **kwargs):
         kw = kwargs
         if hasattr(obj,'kwargs'):
@@ -545,9 +558,13 @@ class PocketsDB:
                        WHERE ObjName = ? AND ObjType = ? AND DataName = ?""",
                     (obj_name, obj_type, k)
                 )
+                cur.execute("INSERT INTO KWArgs VALUES (?, ?, ?, ?, ?)",
+                            (obj_name, obj_type, k, get_type(kw[k]),
+                             convert_type_to_str(kw[k]))
+                            )
             except sqlite3.OperationalError:
                 raise Exception('kwargs dump fail')
-        # todo после удаления создаем нужные строки
+        con.commit()
         con.close()
 
     def get_kwargs(self, obj):

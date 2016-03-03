@@ -195,25 +195,25 @@ class testall(unittest.TestCase):
         pdb._drops()
 
     def test_type_convert(self):
-        acts = [["<type 'str'>", 'some text', 'some text'],
-                ["<type 'str'>", False, 'False'],
-                ["<type 'str'>", 123, '123'],
-                ["<type 'int'>", '123', 123],
-                ["<type 'int'>", '-123', -123],
-                ["<type 'float'>", '-123', -123.0],
-                ["<type 'float'>", '123.4', 123.4],
-                ["<type 'long'>", '1234', 1234L],
-                ["<type 'NoneType'>", '1234', None],
-                ["<type 'NoneType'>", None, None],
-                ["<type 'NoneType'>", 0, None],
-                ["<type 'bool'>", 0, False],
-                ["<type 'bool'>", 1, True],
-                ["<type 'bool'>", '0', False],
-                ["<type 'bool'>", '1', True]
+        acts = [['str', 'some text', 'some text'],
+                ['str', False, 'False'],
+                ['str', 123, '123'],
+                ['int', '123', 123],
+                ['int', '-123', -123],
+                ['float', '-123', -123.0],
+                ['float', '123.4', 123.4],
+                ['long', '1234', 1234L],
+                ['NoneType', '1234', None],
+                ['NoneType', None, None],
+                ['NoneType', 0, None],
+                ['bool', 0, False],
+                ['bool', 1, True],
+                ['bool', '0', False],
+                ['bool', '1', True]
                 ]
         pdb = PocketDB.PocketsDB('test5_db')
         for a in acts:
-            self.assertEqual(pdb.convert_to_type(a[1], a[0]), a[2])
+            self.assertEqual(PocketDB.convert_to_type(a[1], a[0]), a[2])
         pdb._drops()
 
     def test_convert_to_str(self):
@@ -228,27 +228,26 @@ class testall(unittest.TestCase):
                 ]
         pdb = PocketDB.PocketsDB('test6_db')
         for a in acts:
-            self.assertEqual(pdb.convert_type_to_str(a[0]), a[1])
+            self.assertEqual(PocketDB.convert_type_to_str(a[0]), a[1])
         pdb._drops()
-
 
     def test_dump_get_kwargs(self):
         pdb = PocketDB.PocketsDB('test7_db')
-        kw1 = {'Ref_Key': "9747544e-11c8-11e4-589e-0018f3e1b84e",
-               'IsFolder': False,
-               'Description': "Название",
-               'Активность': True}
-        kw2 = {'Ref_Key': "44747adc-5dd5-11e3-95ac-005056c00008",
-               'ВалютнаяСуммаBalance': 123.45,
-               'ExtDimension1': "Название",
-               'Активность': True,
-               'Пассивность': True}
-        kw3 = {'Ref_Key': "6b4785a2-5ee9-11e5-6c8d-0018f3e1b84e",
-               'SomeValue': None,
-               'Description': 345,
-               'Активность': True}
-        pct1 = PocketClass.OnePocket('Test1', 'руб', 123, **kw1)
-        pct2 = PocketClass.OneCredit('Test2', 'руб', 'My contact', 123, **kw3)
+        kw1 = {u'Ref_Key': u"9747544e-11c8-11e4-589e-0018f3e1b84e",
+               u'IsFolder': False,
+               u'Description': u"Name",
+               u'Активность': True}
+        kw2 = {u'Ref_Key': u"44747adc-5dd5-11e3-95ac-005056c00008",
+               u'ВалютнаяСуммаBalance': 123.45,
+               u'ExtDimension1': u"Name",
+               u'Активность': True,
+               u'Пассивность': True}
+        kw3 = {u'Ref_Key': u"6b4785a2-5ee9-11e5-6c8d-0018f3e1b84e",
+               u'SomeValue': None,
+               u'Description': 345,
+               u'Активность': True}
+        pct1 = PocketClass.OnePocket(u'Test1', u'руб', 123, **kw1)
+        pct2 = PocketClass.OneCredit(u'Test2', u'руб', u'My contact', 123, **kw2)
         # третий - для произвольного объекта, например статьи расхода
         pdb.dump_kwargs(pct1)
         pdb.dump_kwargs(pct2)
@@ -267,13 +266,15 @@ class testall(unittest.TestCase):
         ethalon = []
         for k in pct1.kwargs:
             ethalon.append([pct1.name, pct1.__name__,
-                            k, type(pct1.kwargs[k]), pct1.kwargs[k]])
+                            k,
+                            PocketDB.get_type(pct1.kwargs[k]), pct1.kwargs[k]])
         for k in pct2.kwargs:
             ethalon.append([pct2.name, pct2.__name__,
-                            k, type(pct2.kwargs[k]), pct2.kwargs[k]])
+                            k,
+                            PocketDB.get_type(pct2.kwargs[k]), pct2.kwargs[k]])
         for k in kw3:
-            ethalon.append(['Item1', 'in_items',
-                            k, type(kw3[k]), kw3[k]])
+            ethalon.append([u'Item1', u'in_items',
+                            k, PocketDB.get_type(kw3[k]), kw3[k]])
         ethalon.sort()
         self.assertListEqual(ethalon, return_value)
         pdb._drops()
