@@ -29,7 +29,12 @@ class OnePocket:
 
     def get_info(self):
         # вывод информации в виде строки
-        return "%s: %s %s" % (self.name, self.balance, self.currency)
+        kw = ''
+        ks = self.kwargs.keys()
+        ks.sort()
+        for k in ks:
+            kw += '                    %s: %s \n' % (k, self.kwargs[k])
+        return "%s: %s %s\n%s" % (self.name, self.balance, self.currency, kw)
 
 
 class OneCredit:
@@ -54,10 +59,16 @@ class OneCredit:
 
     def get_info(self):
         # вывод информации в виде строки
-        return "%s (%s): %s %s" % (self.name,
-                                   self.contact,
-                                   self.balance,
-                                   self.currency)
+        kw = ''
+        ks = self.kwargs.keys()
+        ks.sort()
+        for k in ks:
+            kw += '                    %s: %s \n' % (k, self.kwargs[k])
+        return "%s (%s): %s %s\n%s" % (self.name,
+                                       self.contact,
+                                       self.balance,
+                                       self.currency,
+                                       kw)
 
 
 class Pockets:
@@ -71,6 +82,10 @@ class Pockets:
         self.in_items = []
         self.contacts = []
         self.credits = []
+        self.other_kwargs = {'out_items': {},
+                             'in_items': {},
+                             'contacts': {}
+                             }
         self.db = PocketDB.PocketsDB(db_name)
         self.actions_names = {
             1: 'In',
@@ -127,26 +142,38 @@ class Pockets:
     def get_info(self):
         # вывод информации в виде строки
         res = ""
+        ps_names = []
         for i in self.pockets:
+            ps_names.append(i.name)
+        ps_names.sort()
+        for n in ps_names:
+            i = self.get_one(n, 'OnePocket')
             res += i.get_info()
             if self.pockets[-1] != i:
                 res += "\n"
         if (len(self.pockets) > 0) & (len(self.contacts) > 0):
             res += "\n"
+        cs_names = []
         for i in self.credits:
+            cs_names.append(i.name)
+        cs_names.sort()
+        for n in cs_names:
+            i = self.get_one(n, 'OneCredit')
             res += i.get_info()
             if self.credits[-1] != i:
                 res += "\n"
         return res
 
-    def get_one(self, obj_name):
+    def get_one(self, obj_name, obj_type=None):
         # возвращает кошелек (кредит) по наименованию
-        for i in self.pockets:
-            if i.name == obj_name:
-                return i
-        for i in self.credits:
-            if i.name == obj_name:
-                return i
+        if obj_type == 'OnePocket' or obj_type is None:
+            for i in self.pockets:
+                if i.name == obj_name:
+                    return i
+        if obj_type == 'OneCredit' or obj_type is None:
+            for i in self.credits:
+                if i.name == obj_name:
+                    return i
 
     def create_db(self):
         """
@@ -163,7 +190,7 @@ class Pockets:
         self.get_settings()
         # кошельки:
         for data in self.db.get_pockets():
-            self.set_pocket(*data)
+            self.set_pocket(*data, **self.db.get_kwargs(data[0], 'OnePocket'))
         # статьи доходов:
         self.in_items = self.db.get_items_in()
         # статьи расходов:
@@ -172,7 +199,7 @@ class Pockets:
         self.contacts = self.db.get_contacts()
         # кредиты:
         for data in self.db.get_credits():
-            self.set_credit(*data)
+            self.set_credit(*data, **self.db.get_kwargs(data[0], 'OneCredit'))
 
     def action_in(self, pocket, item, summ, amount=0, comment=''):
         """

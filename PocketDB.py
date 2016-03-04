@@ -46,8 +46,8 @@ def convert_type_to_str(value):
                       u'long': long,
                       u'NoneType': str,
                       u'bool': int}
-    print value
-    return str(action_by_type[str_type](value))
+    # print value
+    return unicode(action_by_type[str_type](value))
 
 
 class PocketsDB:
@@ -272,6 +272,16 @@ class PocketsDB:
                                 )
                             )
             con.commit()
+            for credit in pcs.credits:
+                self.dump_kwargs(credit)
+            for pocket in pcs.pockets:
+                self.dump_kwargs(pocket)
+            for obj_type in pcs.other_kwargs:
+                kw = pcs.other_kwargs[obj_type]
+                if isinstance(kw, dict):
+                    for item_name in kw:
+                        self.dump_kwargs(item_name, obj_type, kw[item_name])
+
         con.close()
 
     def get_settings(self):
@@ -486,7 +496,7 @@ class PocketsDB:
                            FROM Pockets AS P
                            LEFT JOIN Balances AS B ON B.Pocket = P.Name
                            """
-                       )
+                        )
             return_value = [[row[0], row[1], row[2]] for row in cur]
         except sqlite3.OperationalError:
             return_value = -1
@@ -563,12 +573,32 @@ class PocketsDB:
                              convert_type_to_str(kw[k]))
                             )
             except sqlite3.OperationalError:
-                raise Exception('kwargs dump fail')
+                raise Exception('KWArgs dump fail')
         con.commit()
         con.close()
 
-    def get_kwargs(self, obj):
-        pass
+    def get_kwargs(self, obj, obj_type=None):
+        if hasattr(obj,'__name__'):
+            obj_type = obj.__name__
+        if obj_type is None:
+            raise Exception('Object type is None')
+        obj_name = str(obj)
+        if hasattr(obj,'name'):
+            obj_name = obj.name
+        return_value = {}
+        con = sqlite3.connect(self.db_name)
+        cur = con.cursor()
+        try:
+            cur.execute("""SELECT * FROM KWArgs
+                        WHERE ObjName = ? AND ObjType = ?""",
+                        (obj_name, obj_type))
+        except sqlite3.OperationalError:
+            raise Exception('KWArgs table is wrong')
+        for row in cur:
+            return_value[row[2]] = convert_to_type(row[4], row[3])
+        con.close()
+        # print obj_name, obj_type, return_value
+        return return_value
 
     # def prepare_send_data(self):
     #     """функция передает данные сервису 1С (веб-сервису)
@@ -736,6 +766,8 @@ class ODataRequests:
     def __init__(self, settings):
         self.__name__ = 'ODataRequests'
         self.settings = settings
+
+
 '''
     def _soap_service_factory(self):
         try:

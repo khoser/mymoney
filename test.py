@@ -211,10 +211,8 @@ class testall(unittest.TestCase):
                 ['bool', '0', False],
                 ['bool', '1', True]
                 ]
-        pdb = PocketDB.PocketsDB('test5_db')
         for a in acts:
             self.assertEqual(PocketDB.convert_to_type(a[1], a[0]), a[2])
-        pdb._drops()
 
     def test_convert_to_str(self):
         acts = [['some text', 'some text'],
@@ -226,16 +224,14 @@ class testall(unittest.TestCase):
                 [None, 'None'],
                 [0, '0'],
                 ]
-        pdb = PocketDB.PocketsDB('test6_db')
         for a in acts:
             self.assertEqual(PocketDB.convert_type_to_str(a[0]), a[1])
-        pdb._drops()
 
     def test_dump_get_kwargs(self):
         pdb = PocketDB.PocketsDB('test7_db')
         kw1 = {u'Ref_Key': u"9747544e-11c8-11e4-589e-0018f3e1b84e",
                u'IsFolder': False,
-               u'Description': u"Name",
+               u'Description': u"Русские буквы",
                u'Активность': True}
         kw2 = {u'Ref_Key': u"44747adc-5dd5-11e3-95ac-005056c00008",
                u'ВалютнаяСуммаBalance': 123.45,
@@ -263,22 +259,30 @@ class testall(unittest.TestCase):
             return_value.append([row[0], row[1], row[2], row[3], row[4]])
         con.close()
         return_value.sort()
-        ethalon = []
+        model = []
         for k in pct1.kwargs:
-            ethalon.append([pct1.name, pct1.__name__,
-                            k,
-                            PocketDB.get_type(pct1.kwargs[k]), pct1.kwargs[k]])
+            model.append([pct1.name, pct1.__name__,
+                          k,
+                          PocketDB.get_type(pct1.kwargs[k]),
+                          PocketDB.convert_type_to_str(pct1.kwargs[k])])
         for k in pct2.kwargs:
-            ethalon.append([pct2.name, pct2.__name__,
-                            k,
-                            PocketDB.get_type(pct2.kwargs[k]), pct2.kwargs[k]])
+            model.append([pct2.name, pct2.__name__,
+                          k,
+                          PocketDB.get_type(pct2.kwargs[k]),
+                          PocketDB.convert_type_to_str(pct2.kwargs[k])])
         for k in kw3:
-            ethalon.append([u'Item1', u'in_items',
-                            k, PocketDB.get_type(kw3[k]), kw3[k]])
-        ethalon.sort()
-        self.assertListEqual(ethalon, return_value)
+            model.append([u'Item1', u'in_items',
+                          k, PocketDB.get_type(kw3[k]),
+                          PocketDB.convert_type_to_str(kw3[k])])
+        model.sort()
+        kw1_t = pdb.get_kwargs(pct1)
+        kw2_t = pdb.get_kwargs(pct2)
+        kw3_t = pdb.get_kwargs('Item1', 'in_items')
         pdb._drops()
-
+        self.assertListEqual(model, return_value)
+        self.assertDictEqual(kw1, kw1_t)
+        self.assertDictEqual(kw2, kw2_t)
+        self.assertDictEqual(kw3, kw3_t)
 
     # тестирование PocketClass
     def test_one_pocket(self):
@@ -359,32 +363,91 @@ class testall(unittest.TestCase):
         self.assertEqual(len(pcs.credits),0)
         pcs._drop_db()
 
-    def test_odata(self):
-        # print ('test odata')
-        pcs = PocketClass.Pockets('MyPythonMoney.db')
-        pcs.get_settings()
+    def test_get_one(self):
+        pcs = PocketClass.Pockets('test12_db')
+        args = ['Test', 'руб', 123]
+        pcs.set_pocket(*args)
+        args = ['Test', 'руб', 'My contact', 123]
+        pcs.set_credit(*args)
+        pcs._drop_db()
+        one = pcs.get_one('Test')
+        two = pcs.get_one('Test', 'OnePocket')
+        three = pcs.get_one('Test', 'OneCredit')
+        self.assertEqual(one, two)
+        self.assertEqual(one, pcs.pockets[0])
+        self.assertEqual(three, pcs.credits[0])
 
-        ourl = '/odata/standard.odata'
-        jformat = '/?$format=json'
-        journ = urllib2.quote('ЖурналОпераций')
-        reg_slice = '/AccountingRegister_%s/Balance' % journ
-        # reg_slice = unicode(reg_slice, 'utf-8')
-        URL = pcs.settings['URL']
-        # furl = "money.kter.ru"
-        # lurl = "/money/odata/standard.odata/"
-        full_url = URL + ourl + reg_slice + jformat
-        authorization = pcs.settings['Authorization']
+    def test_create_fill_from_db(self):
+        in_items = [u'item1', u'item2', u'Item3']
+        out_items = [u'Item4', u'Item5', u'item6']
+        contacts = [u'contact 1', u'contact 2', u'contact 3']
+        pockets = {u'p1': [u'p1', u'руб', 123.4],
+                   u'p2': [u'p2', u'руб', 234.5],
+                   u'p3': [u'p3', u'USD', 345.6]}
+        credit_s = {u'c1': [u'c1', u'руб', u'contact 1', 456.7],
+                    u'c2': [u'c2', u'руб', u'contact 2', 567.8],
+                    u'c3': [u'c3', u'USD', u'contact 3', 678.9]}
+        kw1 = {u'Ref_Key': u"9747544e-11c8-11e4-589e-0018f3e1b84e",
+               u'IsFolder': False,
+               u'Description': u"Русские буквы",
+               u'Активность': True}
+        kw2 = {u'Ref_Key': u"44747adc-5dd5-11e3-95ac-005056c00008",
+               u'ВалютнаяСуммаBalance': 123.45,
+               u'ExtDimension1': u"Name",
+               u'Активность': True,
+               u'Пассивность': True}
+        settings = [u'http://google.com', u'12345678']
+        pcs = PocketClass.Pockets('test13_db')
+        pcs.in_items = in_items
+        pcs.out_items = out_items
+        pcs.contacts = contacts
+        for p in pockets:
+            pcs.set_pocket(*pockets[p], **kw1)
+        for c in credit_s:
+            pcs.set_credit(*credit_s[c], **kw2)
+        pcs.create_db()
+        pcs.db.reset_settings(*settings)
+        pcs2 = PocketClass.Pockets('test13_db')
+        pcs2.fill_from_db()
+        pcs2._drop_db()
+        pcs.contacts.sort()
+        pcs.in_items.sort()
+        pcs.out_items.sort()
+        pcs2.contacts.sort()
+        pcs2.in_items.sort()
+        pcs2.out_items.sort()
+        self.assertMultiLineEqual(pcs.get_info(), pcs2.get_info())
+        self.assertListEqual(pcs.in_items, pcs2.in_items)
+        self.assertListEqual(pcs.out_items, pcs2.out_items)
+        self.assertListEqual(pcs.contacts, pcs2.contacts)
+        # todo разобраться с кваргсами для статей и контактов
 
-        headers = {
-            'Authorization': authorization
-        }
-        req = urllib2.Request(full_url, None, headers)
-        result = urllib2.urlopen(req)
-
-        data = result.read()
-
-        # print(data)
-        self.assertEqual(1,1)
+    # def test_odata(self):
+    #     # print ('test odata')
+    #     pcs = PocketClass.Pockets('MyPythonMoney.db')
+    #     pcs.get_settings()
+    #
+    #     ourl = '/odata/standard.odata'
+    #     jformat = '/?$format=json'
+    #     journ = urllib2.quote('ЖурналОпераций')
+    #     reg_slice = '/AccountingRegister_%s/Balance' % journ
+    #     # reg_slice = unicode(reg_slice, 'utf-8')
+    #     URL = pcs.settings['URL']
+    #     # furl = "money.kter.ru"
+    #     # lurl = "/money/odata/standard.odata/"
+    #     full_url = URL + ourl + reg_slice + jformat
+    #     authorization = pcs.settings['Authorization']
+    #
+    #     headers = {
+    #         'Authorization': authorization
+    #     }
+    #     req = urllib2.Request(full_url, None, headers)
+    #     result = urllib2.urlopen(req)
+    #
+    #     data = result.read()
+    #
+    #     # print(data)
+    #     self.assertEqual(1,1)
 
 
 if __name__ == '__main__':
