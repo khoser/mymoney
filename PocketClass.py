@@ -8,17 +8,33 @@ import base64
 import PocketDB
 
 
-class OnePocket:
+class SimpleObject:
     """Один кошелек со своей валютой и баллансом"""
-    def __init__(self, name, currency, balance=0, **kwargs):
-        self.__name__ = 'OnePocket'
+    def __init__(self, name, **kwargs):
+        self.__name__ = 'SimpleObject'
         self.name = name
-        self.currency = currency
-        self.balance = 0
-        self.set_balance(balance)
         self.kwargs = {}
         for i in kwargs:
             self.kwargs[i] = kwargs[i]
+
+    def __str__(self):
+        return self.name
+
+    def __unicode__(self):
+        return unicode(self.name)
+
+    def __bytes__(self):
+        return bytes(self.name)
+
+
+class OnePocket(SimpleObject):
+    """Один кошелек со своей валютой и баллансом"""
+    def __init__(self, name, currency, balance=0, **kwargs):
+        SimpleObject.__init__(self, name, **kwargs)
+        self.__name__ = 'OnePocket'
+        self.currency = currency
+        self.balance = 0
+        self.set_balance(balance)
 
     def set_balance(self, balance):
         # изменение баланса
@@ -37,25 +53,13 @@ class OnePocket:
         return "%s: %s %s\n%s" % (self.name, self.balance, self.currency, kw)
 
 
-class OneCredit:
+class OneCredit(OnePocket):
     """Один кредит со своими валютой, контактом и баллансом"""
     def __init__(self, name, currency, contact, balance=0, **kwargs):
+        OnePocket.__init__(self, name, currency, balance, **kwargs)
         self.__name__ = 'OneCredit'
-        self.name = name
-        self.currency = currency
         self.contact = contact
-        self.balance = balance
-        self.set_balance(balance)
-        self.kwargs = {}
-        for i in kwargs:
-            self.kwargs[i] = kwargs[i]
 
-    def set_balance(self, balance):
-        # изменение баланса
-        if type(balance) == float or int:
-            self.balance = balance
-        elif type(balance) == str:
-            self.balance = float(balance.replace(" ", "").replace(",", "."))
 
     def get_info(self):
         # вывод информации в виде строки
@@ -82,15 +86,18 @@ class Pockets:
         self.in_items = []
         self.contacts = []
         self.credits = []
-        self.other_kwargs = {'out_items': {},
-                             'in_items': {},
-                             'contacts': {}
-                             }
+        self.simple_objects = {'OnePocket': 'OnePocket',
+                               'OneCredit': 'OneCredit',
+                               'OneOutItem': 'OneOutItem',
+                               'OneInItem': 'OneInItem',
+                               'OneContact': 'OneContact'
+                               }
+        self.other_kwargs = {}
         self.db = PocketDB.PocketsDB(db_name)
         self.actions_names = {
             1: 'In',
             2: 'Out',
-            3: 'Betwean',
+            3: 'Between',
             4: 'Exchange',
             5: 'Credit1In',
             6: 'Credit1Out',
@@ -139,6 +146,29 @@ class Pockets:
                 OneCredit(name, currency, contact, balance, **kwargs)
             )
 
+    def set_out_item(self, name, **kwargs):
+        so = SimpleObject(name, **kwargs)
+        so.__name__ = self.simple_objects['OneOutItem']
+        self.out_items.append(so)
+
+    def set_in_item(self, name, **kwargs):
+        so = SimpleObject(name, **kwargs)
+        so.__name__ = self.simple_objects['OneInItem']
+        self.in_items.append(so)
+
+    def set_contact(self, name, **kwargs):
+        so = SimpleObject(name, **kwargs)
+        so.__name__ = self.simple_objects['OneContact']
+        self.contacts.append(so)
+
+    def set_simple(self, name, simple_type, **kwargs):
+        if simple_type == self.simple_objects['OneOutItem']:
+            self.set_out_item(name, **kwargs)
+        if simple_type == self.simple_objects['OneInItem']:
+            self.set_in_item(name, **kwargs)
+        if simple_type == self.simple_objects['OneContact']:
+            self.set_contact(name, **kwargs)
+
     def get_info(self):
         # вывод информации в виде строки
         res = ""
@@ -166,11 +196,11 @@ class Pockets:
 
     def get_one(self, obj_name, obj_type=None):
         # возвращает кошелек (кредит) по наименованию
-        if obj_type == 'OnePocket' or obj_type is None:
+        if obj_type == self.simple_objects['OnePocket'] or obj_type is None:
             for i in self.pockets:
                 if i.name == obj_name:
                     return i
-        if obj_type == 'OneCredit' or obj_type is None:
+        if obj_type == self.simple_objects['OneCredit'] or obj_type is None:
             for i in self.credits:
                 if i.name == obj_name:
                     return i
@@ -190,16 +220,34 @@ class Pockets:
         self.get_settings()
         # кошельки:
         for data in self.db.get_pockets():
-            self.set_pocket(*data, **self.db.get_kwargs(data[0], 'OnePocket'))
+            self.set_pocket(
+                *data,
+                **self.db.get_kwargs(data[0], self.simple_objects['OnePocket'])
+            )
         # статьи доходов:
-        self.in_items = self.db.get_items_in()
+        for data in self.db.get_items_in():
+            self.set_in_item(
+                data,
+                **self.db.get_kwargs(data[0], self.simple_objects['OneInItem'])
+            )
         # статьи расходов:
-        self.out_items = self.db.get_items_out()
+        for data in self.db.get_items_out():
+            self.set_out_item(
+                data,
+                **self.db.get_kwargs(data[0], self.simple_objects['OneOutItem'])
+            )
         # контакты:
-        self.contacts = self.db.get_contacts()
+        for data in self.db.get_contacts():
+            self.set_contact(
+                data,
+                **self.db.get_kwargs(data[0], self.simple_objects['OneContact'])
+            )
         # кредиты:
         for data in self.db.get_credits():
-            self.set_credit(*data, **self.db.get_kwargs(data[0], 'OneCredit'))
+            self.set_credit(
+                *data,
+                **self.db.get_kwargs(data[0], self.simple_objects['OneCredit'])
+            )
 
     def action_in(self, pocket, item, summ, amount=0, comment=''):
         """

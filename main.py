@@ -75,7 +75,7 @@ class MyFace(StackLayout):
             self.remove_widget(self.amount)
             self.remove_widget(self.comment)
             self.remove_widget(self.btn)
-        elif self.previous_action_name == 'Betwean':
+        elif self.previous_action_name == 'Between':
             self.remove_widget(self.pocket)
             self.remove_widget(self.to_pocket)
             self.remove_widget(self.summ)
@@ -126,7 +126,7 @@ class MyFace(StackLayout):
             self.btn = Button(text='Учесть', size_hint=(1, None), height=50,
                               on_press=partial(self.do_action_out))
             self.add_widget(self.btn)
-        elif action_name == 'Betwean':
+        elif action_name == 'Between':
             self.pocket = DrpDwnList('Из кошелька:',
                                      [i.name for i in self.pcs.pockets],
                                      self.show_money)
