@@ -39,6 +39,7 @@ class testall(unittest.TestCase):
                      u'InItems',
                      u'Contacts',
                      u'Credits',
+                     u'Currency',
                      u'Settings',
                      u'Actions',
                      u'InAction',
@@ -162,9 +163,12 @@ class testall(unittest.TestCase):
                     u'c3': [u'c3', u'USD', u'contact 3', 678.9]}
         pcs = PocketClass.Pockets('test4_db')
         pdb = pcs.db
-        pcs.in_items = in_items
-        pcs.out_items = out_items
-        pcs.contacts = contacts
+        for i in in_items:
+            pcs.set_in_item(i)
+        for i in out_items:
+            pcs.set_out_item(i)
+        for c in contacts:
+            pcs.set_contact(c)
         for p in pockets:
             pcs.set_pocket(*pockets[p])
         for c in credit_s:
@@ -398,9 +402,12 @@ class testall(unittest.TestCase):
                u'Пассивность': True}
         settings = [u'http://google.com', u'12345678']
         pcs = PocketClass.Pockets('test13_db')
-        pcs.in_items = in_items
-        pcs.out_items = out_items
-        pcs.contacts = contacts
+        for i in in_items:
+            pcs.set_in_item(i)
+        for i in out_items:
+            pcs.set_out_item(i)
+        for c in contacts:
+            pcs.set_contact(c)
         for p in pockets:
             pcs.set_pocket(*pockets[p], **kw1)
         for c in credit_s:
@@ -416,11 +423,14 @@ class testall(unittest.TestCase):
         pcs2.contacts.sort()
         pcs2.in_items.sort()
         pcs2.out_items.sort()
-        self.assertMultiLineEqual(pcs.get_info(), pcs2.get_info())
-        self.assertListEqual(pcs.in_items, pcs2.in_items)
-        self.assertListEqual(pcs.out_items, pcs2.out_items)
-        self.assertListEqual(pcs.contacts, pcs2.contacts)
-        # todo разобраться с кваргсами для статей и контактов
+        self.assertMultiLineEqual(pcs.get_all_info(), pcs2.get_all_info())
+        self.assertEqual(pcs.credits[0].kwargs[u'ВалютнаяСуммаBalance'],
+                         pcs2.credits[0].kwargs[u'ВалютнаяСуммаBalance'])
+        self.assertEqual(type(pcs.credits[0].kwargs[u'ВалютнаяСуммаBalance']),
+                         float)
+
+    def test_(self):
+        pass
 
     # def test_odata(self):
     #     # print ('test odata')

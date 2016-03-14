@@ -23,8 +23,20 @@ class SimpleObject:
     def __unicode__(self):
         return unicode(self.name)
 
+    def __repr__(self):
+        return unicode(self.name)
+
     def __bytes__(self):
         return bytes(self.name)
+
+    def get_info(self):
+        # вывод информации в виде строки
+        kw = ''
+        ks = self.kwargs.keys()
+        ks.sort()
+        for k in ks:
+            kw += '                    %s: %s \n' % (k, self.kwargs[k])
+        return "%s:\n%s" % (self.name, kw)
 
 
 class OnePocket(SimpleObject):
@@ -60,7 +72,6 @@ class OneCredit(OnePocket):
         self.__name__ = 'OneCredit'
         self.contact = contact
 
-
     def get_info(self):
         # вывод информации в виде строки
         kw = ''
@@ -86,13 +97,15 @@ class Pockets:
         self.in_items = []
         self.contacts = []
         self.credits = []
-        self.simple_objects = {'OnePocket': 'OnePocket',
-                               'OneCredit': 'OneCredit',
-                               'OneOutItem': 'OneOutItem',
-                               'OneInItem': 'OneInItem',
-                               'OneContact': 'OneContact'
-                               }
-        self.other_kwargs = {}
+        self.currency = []
+        self.simple_objects = {
+            'OnePocket': 'OnePocket',
+            'OneCredit': 'OneCredit',
+            'OneOutItem': 'OneOutItem',
+            'OneInItem': 'OneInItem',
+            'OneContact': 'OneContact',
+            'Currency': 'Currency'
+        }
         self.db = PocketDB.PocketsDB(db_name)
         self.actions_names = {
             1: 'In',
@@ -104,11 +117,17 @@ class Pockets:
             7: 'Credit2In',
             8: 'Credit2Out',
         }
-        self.settings = {'URL': '', 'Login': '', 'Pass': ''}
+        self.settings = {'URL': '', 'Authorization': ''}
         # self.parsing = False
 
     def _drop_db(self):
         self.db._drops()
+
+    def set_cur(self, name, **kwargs):
+        # добавление валюты в словарь
+        so = SimpleObject(name, **kwargs)
+        so.__name__ = self.simple_objects['Currency']
+        self.currency.append(so)
 
     def set_pocket(self, name, currency='', balance=0, **kwargs):
         # добавление еще одного кошелька в список
@@ -170,7 +189,7 @@ class Pockets:
             self.set_contact(name, **kwargs)
 
     def get_info(self):
-        # вывод информации в виде строки
+        # вывод информации о кошельках и кредитах в виде строки
         res = ""
         ps_names = []
         for i in self.pockets:
@@ -194,8 +213,29 @@ class Pockets:
                 res += "\n"
         return res
 
+    def get_all_info(self):
+        # вывод информации о всех simple_objects в виде строки
+        res = ''
+        attrs = {'OnePocket': self.pockets,
+                 'OneCredit': self.credits,
+                 'OneOutItem': self.out_items,
+                 'OneInItem': self.in_items,
+                 'OneContact': self.contacts,
+                 'Currency': self.currency
+                 }
+        for key in attrs:
+            s_names = []
+            for i in attrs[key]:
+                s_names.append(i.name)
+            s_names.sort()
+            for n in s_names:
+                i = self.get_one(n, key)
+                res += i.get_info()
+                res += "\n"
+        return res
+
     def get_one(self, obj_name, obj_type=None):
-        # возвращает кошелек (кредит) по наименованию
+        # возвращает simple_object по наименованию
         if obj_type == self.simple_objects['OnePocket'] or obj_type is None:
             for i in self.pockets:
                 if i.name == obj_name:
@@ -204,6 +244,54 @@ class Pockets:
             for i in self.credits:
                 if i.name == obj_name:
                     return i
+        if obj_type == self.simple_objects['OneContact'] or obj_type is None:
+            for i in self.contacts:
+                if i.name == obj_name:
+                    return i
+        if obj_type == self.simple_objects['OneOutItem'] or obj_type is None:
+            for i in self.out_items:
+                if i.name == obj_name:
+                    return i
+        if obj_type == self.simple_objects['OneInItem'] or obj_type is None:
+            for i in self.in_items:
+                if i.name == obj_name:
+                    return i
+        if obj_type == self.simple_objects['Currency'] or obj_type is None:
+            for i in self.currency:
+                if i.name == obj_name:
+                    return i
+
+    def find_by_key(self, key, obj_type=None):
+        if obj_type == self.simple_objects['OnePocket'] or obj_type is None:
+            for i in self.pockets:
+                if i.kwargs.has_key('Ref_Key'):
+                    if i.kwargs['Ref_Key'] == key:
+                        return i
+        if obj_type == self.simple_objects['OneCredit'] or obj_type is None:
+            for i in self.credits:
+                if i.kwargs.has_key('Ref_Key'):
+                    if i.kwargs['Ref_Key'] == key:
+                        return i
+        if obj_type == self.simple_objects['OneContact'] or obj_type is None:
+            for i in self.contacts:
+                if i.kwargs.has_key('Ref_Key'):
+                    if i.kwargs['Ref_Key'] == key:
+                        return i
+        if obj_type == self.simple_objects['OneOutItem'] or obj_type is None:
+            for i in self.out_items:
+                if i.kwargs.has_key('Ref_Key'):
+                    if i.kwargs['Ref_Key'] == key:
+                        return i
+        if obj_type == self.simple_objects['OneInItem'] or obj_type is None:
+            for i in self.in_items:
+                if i.kwargs.has_key('Ref_Key'):
+                    if i.kwargs['Ref_Key'] == key:
+                        return i
+        if obj_type == self.simple_objects['Currency'] or obj_type is None:
+            for i in self.currency:
+                if i.kwargs.has_key('Ref_Key'):
+                    if i.kwargs['Ref_Key'] == key:
+                        return i
 
     def create_db(self):
         """
@@ -218,6 +306,12 @@ class Pockets:
         Заполняем объект класса из базы данных
         """
         self.get_settings()
+        # валюты:
+        for data in self.db.get_currency():
+            self.set_cur(
+                data,
+                **self.db.get_kwargs(data[0], self.simple_objects['Currency'])
+            )
         # кошельки:
         for data in self.db.get_pockets():
             self.set_pocket(
@@ -528,52 +622,51 @@ class Pockets:
             self.settings['URL'] = data[0]
             self.settings['Authorization'] = data[1]
 
-    # ToDo: переписать на OData
+    def parse_income_cur(self, data):
+        for i in data:
+            self.set_cur(i['Description'], **i)
 
-    def parse_soap_income(self, data):
-        res_data = [res for res in data]
-        self.in_items = res_data[0]
-        self.out_items = res_data[1]
-        self.contacts = res_data[2]
-        for pocket_data in res_data[3]:
-            self.set_pocket(*pocket_data.data)
-        for credit_data in res_data[4]:
-            self.set_credit(*credit_data.data)
-        self.create_db()
-        # self.parsing = False
+    def parse_income_in_items(self, data):
+        for i in data:
+            self.set_in_item(i['Description'], **i)
 
-    def parse_soap_income_in_items(self, data):
-        self.in_items = data
+    def parse_income_out_items(self, data):
+        for i in data:
+            self.set_out_item(i['Description'], **i)
 
-    def parse_soap_income_out_items(self, data):
-        self.out_items = data
+    def parse_income_contacts(self, data):
+        for i in data:
+            self.set_contact(i['Description'], **i)
 
-    def parse_soap_income_contacts(self, data):
-        self.contacts = data
+    def parse_income_pockets(self, data):
+        for i in data:
+            self.set_pocket(i['Description'],
+                            self.find_by_key(i[u'Валюта_Key'],
+                                             self.simple_objects['Currency']),
+                            0, **i)
 
-    def parse_soap_income_pockets(self, data):
-        for pocket_data in data:
-            self.set_pocket(*pocket_data.data)
-
-    def parse_soap_income_credits(self, data):
-        for credit_data in data:
-            self.set_credit(*credit_data.data)
+    def parse_income_credits(self, data):
+        for i in data:
+            self.set_credit(i['Description'],
+                            self.find_by_key(i[u'Валюта_Key'],
+                                             self.simple_objects['Currency']),
+                            self.find_by_key(i[u'Контакт_Key'],
+                                             self.simple_objects['OneContact'])
+                            , 0, **i)
 
     def parsing_functions(self):
-        return {'in_items': self.parse_soap_income_in_items,
-                'out_items': self.parse_soap_income_out_items,
-                'contacts': self.parse_soap_income_contacts,
-                'pockets': self.parse_soap_income_pockets,
-                'credits': self.parse_soap_income_credits}
+        return {self.simple_objects['Currency']: self.parse_income_cur,
+                self.simple_objects['OneInItem']: self.parse_income_in_items,
+                self.simple_objects['OneOutItem']: self.parse_income_out_items,
+                self.simple_objects['OneContact']: self.parse_income_contacts,
+                self.simple_objects['OnePocket']: self.parse_income_pockets,
+                self.simple_objects['OneCredit']: self.parse_income_credits}
 
-    def soap_data(self):
+    def get_data(self):
         if hasattr(self, 'settings'):
-            # self.parsing = True
-            data = self.db.prepare_send_data()
             self.get_settings()
-            sr = PocketDB.SoapRequests(self.settings)
-            sr.send_soap_data(data, self.parsing_functions())
-
+            sr = PocketDB.ODataRequests(self.settings)
+            sr.get_refs(self.parsing_functions())
 
 
     # TODO если БД не прокатит, то чтение инфы о кошельках и остатках из файлов

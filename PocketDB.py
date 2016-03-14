@@ -8,10 +8,12 @@ import base64
 from multiprocessing import Pool
 import os
 import string
+import urllib2
+import json
 
 
 def get_type(val):
-    str_type = str(type(val))
+    str_type = unicode(type(val))
     result = ''
     for l in str_type:
         if l in string.letters:
@@ -27,24 +29,26 @@ def convert_to_type(str_value, str_type):
     def bool_int(*args):
         return bool(int(*args))
 
-    action_by_str_type = {u'str': str,
+    action_by_str_type = {u'str': unicode,
                           u'unicode': unicode,
                           u'int': int,
                           u'float': float,
                           u'long': long,
                           u'NoneType': none_type,
+                          u'list': list,
                           u'bool': bool_int}
     return action_by_str_type[str_type](str_value)
 
 
 def convert_type_to_str(value):
     str_type = get_type(value)
-    action_by_type = {u'str': str,
+    action_by_type = {u'str': unicode,
                       u'unicode': unicode,
                       u'int': int,
                       u'float': float,
                       u'long': long,
-                      u'NoneType': str,
+                      u'NoneType': unicode,
+                      u'list': unicode,
                       u'bool': int}
     # print value
     return unicode(action_by_type[str_type](value))
@@ -224,6 +228,10 @@ class PocketsDB:
             CREATE TABLE Credits(Name VARCHAR(50),
                                  Contact VARCHAR(50),
                                  Currency VARCHAR(10));
+--валюты
+            DROP TABLE IF EXISTS Currency;
+            CREATE TABLE Currency(Name VARCHAR(50));
+
 --дополнительные параметры
             DROP TABLE IF EXISTS KWArgs;
             CREATE TABLE KWArgs(ObjName VARCHAR(50),
@@ -250,11 +258,13 @@ class PocketsDB:
                                 )
                             )
             for x in pcs.out_items:
-                cur.execute("INSERT INTO OutItems VALUES (?)", (x,))
+                cur.execute("INSERT INTO OutItems VALUES (?)", (x.name,))
             for x in pcs.in_items:
-                cur.execute("INSERT INTO InItems VALUES (?)", (x,))
+                cur.execute("INSERT INTO InItems VALUES (?)", (x.name,))
             for x in pcs.contacts:
-                cur.execute("INSERT INTO Contacts VALUES (?)", (x,))
+                cur.execute("INSERT INTO Contacts VALUES (?)", (x.name,))
+            for x in pcs.currency:
+                cur.execute("INSERT INTO Currency VALUES (?)", (x.name,))
             for credit in pcs.credits:
                 cur.execute(
                                 "INSERT INTO Credits VALUES (?, ?, ?)",
@@ -276,11 +286,12 @@ class PocketsDB:
                 self.dump_kwargs(credit)
             for pocket in pcs.pockets:
                 self.dump_kwargs(pocket)
-            for obj_type in pcs.other_kwargs:
-                kw = pcs.other_kwargs[obj_type]
-                if isinstance(kw, dict):
-                    for item_name in kw:
-                        self.dump_kwargs(item_name, obj_type, kw[item_name])
+            for item in pcs.in_items:
+                self.dump_kwargs(item)
+            for item in pcs.out_items:
+                self.dump_kwargs(item)
+            for contact in pcs.contacts:
+                self.dump_kwargs(contact)
 
         con.close()
 
@@ -323,7 +334,7 @@ class PocketsDB:
         con.commit()
         con.close()
 
-    def action_in(self, pocket_name, item, summ, amount, comment):
+    def action_in(self, pocket_name, item_name, summ, amount, comment):
         """
         доходы
         в кошелек по статье на сумму
@@ -333,14 +344,14 @@ class PocketsDB:
         cur = con.cursor()
         cur.execute(
             "INSERT INTO InAction VALUES (NULL, ?, ?, ?, ?, ?, ?)",
-            (action_name, pocket_name, item, summ, amount, comment)
+            (action_name, pocket_name, item_name, summ, amount, comment)
         )
         lid = cur.lastrowid
         con.commit()
         con.close()
         self.add_action(action_name, lid)
 
-    def action_out(self, pocket_name, item, summ, amount, comment):
+    def action_out(self, pocket_name, item_name, summ, amount, comment):
         """
         расходы
         из кошелька по статье на сумму за количество
@@ -350,7 +361,7 @@ class PocketsDB:
         cur = con.cursor()
         cur.execute(
             "INSERT INTO OutAction VALUES (NULL, ?, ?, ?, ?, ?, ?)",
-            (action_name, pocket_name, item, summ, amount, comment)
+            (action_name, pocket_name, item_name, summ, amount, comment)
         )
         lid = cur.lastrowid
         con.commit()
@@ -520,6 +531,14 @@ class PocketsDB:
         con.close()
         return return_value
 
+    def get_currency(self):
+        con = sqlite3.connect(self.db_name)
+        cur = con.cursor()
+        cur.execute("SELECT * FROM Currency")
+        return_value = [row[0] for row in cur]
+        con.close()
+        return return_value
+
     def get_contacts(self):
         con = sqlite3.connect(self.db_name)
         cur = con.cursor()
@@ -550,14 +569,14 @@ class PocketsDB:
 
     def dump_kwargs(self, obj, obj_type=None, **kwargs):
         kw = kwargs
-        if hasattr(obj,'kwargs'):
+        if hasattr(obj, 'kwargs'):
             kw = obj.kwargs
-        if hasattr(obj,'__name__'):
+        if hasattr(obj, '__name__'):
             obj_type = obj.__name__
         if kw is None or obj_type is None:
             raise Exception('kwargs or object type is None')
-        obj_name = str(obj)
-        if hasattr(obj,'name'):
+        obj_name = unicode(obj)
+        if hasattr(obj, 'name'):
             obj_name = obj.name
         con = sqlite3.connect(self.db_name)
         cur = con.cursor()
@@ -582,7 +601,7 @@ class PocketsDB:
             obj_type = obj.__name__
         if obj_type is None:
             raise Exception('Object type is None')
-        obj_name = str(obj)
+        obj_name = unicode(obj)
         if hasattr(obj,'name'):
             obj_name = obj.name
         return_value = {}
@@ -599,6 +618,7 @@ class PocketsDB:
         con.close()
         # print obj_name, obj_type, return_value
         return return_value
+
 
     # def prepare_send_data(self):
     #     """функция передает данные сервису 1С (веб-сервису)
@@ -765,8 +785,118 @@ class ODataRequests:
 
     def __init__(self, settings):
         self.__name__ = 'ODataRequests'
+        self.fix_set = {'odata_url': '/odata/standard.odata/',
+                        'json_format': '/?$format=json;odata=nometadata',
+                        'journ_oper': 'AccountingRegister_' +
+                                      urllib2.quote('ЖурналОпераций'),
+                        'ref_cur': 'Catalog_' +
+                                   urllib2.quote('Валюты'),
+                        'ref_pockets': 'Catalog_' +
+                                       urllib2.quote('КошелькиИСчета'),
+                        'ref_credits': 'Catalog_' +
+                                       urllib2.quote('Долги'),
+                        'ref_contacts': 'Catalog_' +
+                                       urllib2.quote('Контакты'),
+                        'ref_in_items': 'Catalog_' +
+                                       urllib2.quote('СтатьиДоходов'),
+                        'ref_out_items': 'Catalog_' +
+                                       urllib2.quote('СтатьиРасходов'),
+                        'doc_in': 'Document_' +
+                                       urllib2.quote('Доход'),
+                        'doc_out': 'Document_' +
+                                       urllib2.quote('Расход'),
+                        'doc_between': 'Document_' +
+                                       urllib2.quote('Перемещение'),
+                        'doc_exchange': 'Document_' +
+                                       urllib2.quote('ОбменВалюты'),
+                        'doc_credit1_in': 'Document_' +
+                                       urllib2.quote('МыВзялиВДолг'),
+                        'doc_credit2_in': 'Document_' +
+                                       urllib2.quote('НамВернулиДолг'),
+                        'doc_credit1_out': 'Document_' +
+                                       urllib2.quote('МыВернулиДолг'),
+                        'doc_credit2_out': 'Document_' +
+                                       urllib2.quote('МыДалиВДолг')}
         self.settings = settings
 
+    def get(self, url):
+        headers = {
+            'Authorization': self.settings['Authorization']
+        }
+        req = urllib2.Request(url, None, headers)
+        # try:
+        result = urllib2.urlopen(req)
+        # except:
+        #     raise Exception(u'Что-то пошло не так...')
+        if result.getcode() == 200:
+            return result.read()
+        raise Exception(u'Get url не удался...')
+
+    def get_currency(self):
+        url = (self.settings['URL'] + self.fix_set['odata_url'] +
+               self.fix_set['ref_cur'] + self.fix_set['json_format'])
+        web_pockets = self.get(url)
+        dict_pockets = json.loads(web_pockets)
+        # print dict_pockets
+        return dict_pockets['value']
+
+    def get_pockets(self):
+        url = (self.settings['URL'] + self.fix_set['odata_url'] +
+               self.fix_set['ref_pockets'] + self.fix_set['json_format'])
+        web_pockets = self.get(url)
+        dict_pockets = json.loads(web_pockets)
+        # print dict_pockets
+        return dict_pockets['value']
+
+    def get_credits(self):
+        url = (self.settings['URL'] + self.fix_set['odata_url'] +
+               self.fix_set['ref_credits'] + self.fix_set['json_format'])
+        web_pockets = self.get(url)
+        dict_pockets = json.loads(web_pockets)
+        # for i in dict_pockets['value'][0]:
+        #     print i
+        return dict_pockets['value']
+
+    def get_contacts(self):
+        url = (self.settings['URL'] + self.fix_set['odata_url'] +
+               self.fix_set['ref_contacts'] + self.fix_set['json_format'])
+        web_pockets = self.get(url)
+        dict_pockets = json.loads(web_pockets)
+        # print dict_pockets
+        return dict_pockets['value']
+
+    def get_in_items(self):
+        url = (self.settings['URL'] + self.fix_set['odata_url'] +
+               self.fix_set['ref_in_items'] + self.fix_set['json_format'])
+        web_pockets = self.get(url)
+        dict_pockets = json.loads(web_pockets)
+        # print dict_pockets
+        return dict_pockets['value']
+
+    def get_out_items(self):
+        url = (self.settings['URL'] + self.fix_set['odata_url'] +
+               self.fix_set['ref_out_items'] + self.fix_set['json_format'])
+        web_pockets = self.get(url)
+        dict_pockets = json.loads(web_pockets)
+        # print dict_pockets
+        return dict_pockets['value']
+
+    def get_refs(self, callback_funcs):
+        for k in callback_funcs:
+            if k == 'Currency':
+                callback_funcs[k](self.get_currency())
+            elif k == 'OneInItem':
+                callback_funcs[k](self.get_in_items())
+            elif k == 'OneOutItem':
+                callback_funcs[k](self.get_out_items())
+            elif k == 'OneContact':
+                callback_funcs[k](self.get_contacts())
+            elif k == 'OnePocket':
+                callback_funcs[k](self.get_pockets())
+            elif k == 'OneCredit':
+                callback_funcs[k](self.get_credits())
+            else:
+                print(k)
 
 '''
     def _soap_service_factory(self):
