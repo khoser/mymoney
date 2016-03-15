@@ -71,7 +71,7 @@ class testall(unittest.TestCase):
 
     def test_all_actions(self):
         pdb = PocketDB.PocketsDB('test2_db')
-        pdb.add_action(2,3)
+        pdb.add_action(2, 3)
         con = sqlite3.connect(pdb.db_name)
         cur = con.cursor()
         cur.execute("SELECT * FROM Actions")
@@ -98,13 +98,13 @@ class testall(unittest.TestCase):
                     [pocket1, credit1, sum1, sum2, u'get back']
                     ]
         tbl_names = ['InAction',
-                       'OutAction',
-                       'BetweenAction',
-                       'ExchangeAction',
-                       'Credit1InAction',
-                       'Credit2InAction',
-                       'Credit1OutAction',
-                       'Credit2OutAction']
+                     'OutAction',
+                     'BetweenAction',
+                     'ExchangeAction',
+                     'Credit1InAction',
+                     'Credit2InAction',
+                     'Credit1OutAction',
+                     'Credit2OutAction']
         pdb.action_in(*act_data[0])
         pdb.action_out(*act_data[1])
         pdb.action_between(*act_data[2])
@@ -113,12 +113,12 @@ class testall(unittest.TestCase):
         pdb.action_credit2_in(*act_data[5])
         pdb.action_credit1_out(*act_data[6])
         pdb.action_credit2_out(*act_data[7])
+        pdb._drops()
         for i in range(8):
             cur.execute("SELECT * FROM %s" % tbl_names[i])
             for row in cur:
                 self.assertListEqual(act_data[i], [x for x in row[2:]])
         con.close()
-        pdb._drops()
 
     def test_upd_balances(self):
         _name = 'Test'
@@ -152,6 +152,7 @@ class testall(unittest.TestCase):
         pdb._drops()
 
     def test_get_data(self):
+        currency = [u'руб', u'USD', u'EUR']
         in_items = [u'item1', u'item2', u'Item3']
         out_items = [u'Item4', u'Item5', u'item6']
         contacts = [u'contact 1', u'contact 2', u'contact 3']
@@ -163,6 +164,8 @@ class testall(unittest.TestCase):
                     u'c3': [u'c3', u'USD', u'contact 3', 678.9]}
         pcs = PocketClass.Pockets('test4_db')
         pdb = pcs.db
+        for i in currency:
+            pcs.set_cur(i)
         for i in in_items:
             pcs.set_in_item(i)
         for i in out_items:
@@ -174,6 +177,10 @@ class testall(unittest.TestCase):
         for c in credit_s:
             pcs.set_credit(*credit_s[c])
         pdb.recreate_refs(pcs)
+        return_val = pdb.get_currency()
+        return_val.sort()
+        currency.sort()
+        self.assertListEqual(return_val, currency)
         return_val = pdb.get_items_in()
         return_val.sort()
         in_items.sort()
