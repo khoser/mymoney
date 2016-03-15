@@ -14,9 +14,9 @@ import sqlite3
 #     # For Python 3.0 and later
 #     import urllib as urllib2
 # except ImportError:
-    # Fall back to Python 2's urllib2
-import urllib2 as urllib2
-from urllib2 import quote
+# Fall back to Python 2's urllib2
+# import urllib2 as urllib2
+# from urllib2 import quote
 # from httplib2 import Http
 # import httplib
 # import requests
@@ -25,7 +25,7 @@ from urllib2 import quote
 import unittest
 
 
-class testall(unittest.TestCase):
+class TestAll(unittest.TestCase):
 
     # тестирование PocketDB
     def test_db_init(self):
@@ -58,7 +58,7 @@ class testall(unittest.TestCase):
         try:
             cur.execute("""SELECT name FROM sqlite_master
                         WHERE type='table' AND name in (%s)
-                        """%(', '.join('?' for _ in tbl_names)), (tbl_names)
+                        """ % (', '.join('?' for _ in tbl_names)), tbl_names
                         )
         except sqlite3.OperationalError:
             pass
@@ -76,8 +76,8 @@ class testall(unittest.TestCase):
         cur = con.cursor()
         cur.execute("SELECT * FROM Actions")
         for row in cur:
-            self.assertEquals(row[2],2)
-            self.assertEquals(row[3],3)
+            self.assertEquals(row[2], 2)
+            self.assertEquals(row[3], 3)
         pocket1 = u'pocket1'
         pocket2 = u'pocket2'
         credit1 = u'for one day'
@@ -254,7 +254,7 @@ class testall(unittest.TestCase):
                u'Description': 345,
                u'Активность': True}
         pct1 = PocketClass.OnePocket(u'Test1', u'руб', 123, **kw1)
-        pct2 = PocketClass.OneCredit(u'Test2', u'руб', u'My contact', 123, **kw2)
+        pct2 = PocketClass.OneCredit(u'Test2', u'руб', u'My contact', 23, **kw2)
         # третий - для произвольного объекта, например статьи расхода
         pdb.dump_kwargs(pct1)
         pdb.dump_kwargs(pct2)
@@ -362,7 +362,7 @@ class testall(unittest.TestCase):
         args = ['Test', 'руб', 123]
         pcs.set_pocket(*args)
         pcs._drop_pocket('Test')
-        self.assertEqual(len(pcs.pockets),0)
+        self.assertEqual(len(pcs.pockets), 0)
         pcs._drop_db()
 
     def test_drop_credit(self):
@@ -371,7 +371,7 @@ class testall(unittest.TestCase):
         args = ['Test', 'руб', 'My contact', 123]
         pcs.set_credit(*args)
         pcs._drop_credit('Test')
-        self.assertEqual(len(pcs.credits),0)
+        self.assertEqual(len(pcs.credits), 0)
         pcs._drop_db()
 
     def test_get_one(self):
@@ -436,8 +436,15 @@ class testall(unittest.TestCase):
         self.assertEqual(type(pcs.credits[0].kwargs[u'ВалютнаяСуммаBalance']),
                          float)
 
-    def test_(self):
-        pass
+    def test_get_o_data(self):
+        pcs = PocketClass.Pockets('MyPythonMoney.db')
+        pcs.get_settings()
+        pcs.get_data()
+
+    def test_post_o_data(self):
+        pcs = PocketClass.Pockets('MyPythonMoney.db')
+        pcs.get_settings()
+        pcs.post_data()
 
     # def test_odata(self):
     #     # print ('test odata')

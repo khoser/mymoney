@@ -37,7 +37,10 @@ def convert_to_type(str_value, str_type):
                           u'NoneType': none_type,
                           u'list': list,
                           u'bool': bool_int}
-    return action_by_str_type[str_type](str_value)
+    if str_type in action_by_str_type:
+        return action_by_str_type[str_type](str_value)
+    else:
+        return unicode(str_value)
 
 
 def convert_type_to_str(value):
@@ -51,7 +54,10 @@ def convert_type_to_str(value):
                       u'list': unicode,
                       u'bool': int}
     # print value
-    return unicode(action_by_type[str_type](value))
+    if str_type in action_by_type:
+        return unicode(action_by_type[str_type](value))
+    else:
+        return unicode(value)
 
 
 class PocketsDB:
@@ -788,7 +794,8 @@ class ODataRequests:
         self.fix_set = {'odata_url': '/odata/standard.odata/',
                         'json_format': '/?$format=json;odata=nometadata',
                         'journ_oper': 'AccountingRegister_' +
-                                      urllib2.quote('ЖурналОпераций'),
+                                      urllib2.quote('ЖурналОпераций') +
+                                      '/Balance',
                         'ref_cur': 'Catalog_' +
                                    urllib2.quote('Валюты'),
                         'ref_pockets': 'Catalog_' +
@@ -881,128 +888,29 @@ class ODataRequests:
         # print dict_pockets
         return dict_pockets['value']
 
+    def get_balance(self):
+        url = (self.settings['URL'] + self.fix_set['odata_url'] +
+               self.fix_set['journ_oper'] + self.fix_set['json_format'])
+        web_pockets = self.get(url)
+        dict_pockets = json.loads(web_pockets)
+        # print dict_pockets
+        return dict_pockets['value']
+
     def get_refs(self, callback_funcs):
-        for k in callback_funcs:
-            if k == 'Currency':
-                callback_funcs[k](self.get_currency())
-            elif k == 'OneInItem':
-                callback_funcs[k](self.get_in_items())
-            elif k == 'OneOutItem':
-                callback_funcs[k](self.get_out_items())
-            elif k == 'OneContact':
-                callback_funcs[k](self.get_contacts())
-            elif k == 'OnePocket':
-                callback_funcs[k](self.get_pockets())
-            elif k == 'OneCredit':
-                callback_funcs[k](self.get_credits())
-            else:
-                print(k)
+        if 'Currency' in callback_funcs:
+            callback_funcs['Currency'](self.get_currency())
+        if 'OneInItem' in callback_funcs:
+            callback_funcs['OneInItem'](self.get_in_items())
+        if 'OneOutItem' in callback_funcs:
+            callback_funcs['OneOutItem'](self.get_out_items())
+        if 'OneContact' in callback_funcs:
+            callback_funcs['OneContact'](self.get_contacts())
+        if 'OnePocket' in callback_funcs:
+            callback_funcs['OnePocket'](self.get_pockets())
+        if 'OneCredit' in callback_funcs:
+            callback_funcs['OneCredit'](self.get_credits())
+        if 'Balance' in callback_funcs:
+            callback_funcs['Balance'](self.get_balance())
 
-'''
-    def _soap_service_factory(self):
-        try:
-            client = Client(self.settings['URL'],
-                            username=self.settings['Login'],
-                            password=base64.standard_b64decode(
-                                    self.settings['Pass'])
-                            )
-        except WebFault:
-            return -1
-        return 0, client.service[0], client.factory
-
-    def send_soap_data(self, data, to_callback, no_multi = False):
-        """функция передает данные сервису 1С (веб-сервису)
-
-        :return: -1 в случае неудачного запроса к сервису, иначе 0.
-        """
-        # data = self.prepare_send_data()
-
-        def get_data():
-            self._get_soap_data(to_callback, no_multi)
-
-        if len(data) == 0:
-            get_data()
-            return 0
-        act, remote_functions, remote_types = self._soap_service_factory()
-        if act == -1:
-            return -1
-
-        def do_remote_action(arg):
-            return remote_functions.Frompy21c(arg)
-
-        remote_data = remote_types.create('ns1:arr')
-        for data_res in data:
-            remote_data.data.append(remote_types.create('ns1:arr'))
-            remote_data.data[len(remote_data.data)-1].data = data_res
-        try:
-            if no_multi:
-                do_remote_action(remote_data)
-                get_data()
-            else:
-                p = Pool(processes=6)
-                remote_result = p.map_async(do_remote_action,
-                                            (remote_data,), callback=get_data)
-                remote_result.wait()
-                p.close()
-                p.join()
-        except WebFault:
-            return -1
-        # if remote_result[0] == 'Success':
-        #     return 'Success'
-            # self.recreate_docs()
-        return 0
-
-    def _get_soap_data(self, to_callback, no_multi=False):
-        """функция получает от сервиса 1С (веб-сервиса) данные
-
-        :return: -1 в случае неудачного запроса к сервису, иначе 0.
-        """
-        res_data = []
-        act, remote_functions, remote_types = self._soap_service_factory()
-        if act == -1:
-            return -1
-
-        def do_remote_action_(arg):
-            return_val = remote_functions.From1c2py(arg).data
-            return return_val
-
-        try:
-            send_names = ['in_items',
-                          'out_items',
-                          'contacts',
-                          'pockets',
-                          'credits']
-            if no_multi:
-                results = []
-                for sn in send_names:
-                    results.append(do_remote_action_(sn))
-                to_callback(results)
-            else:
-                p = Pool(processes=1)
-                # results = p.map_async(do_remote_action_, send_names,
-                #                       callback=to_callback)
-                # results.wait()
-                for sn in send_names:
-                    results = p.apply_async(do_remote_action_, sn,
-                                            callback=to_callback[sn])
-                    results.wait()
-
-                # results = p.map(do_remote_action_, send_names)
-                # to_callback(results)
-                p.close()
-                p.join()
-            # res_data = [res.data for res in results]
-            # self.in_items = remote_functions.From1c2py('in_items').data
-            # self.out_items = remote_functions.From1c2py('out_items').data
-            # self.contacts = remote_functions.From1c2py('contacts').data
-            # pockets_data = remote_functions.From1c2py('pockets')
-            # for pocket_data in pockets_data.data:
-            #     self.set_pocket(*pocket_data.data)
-            # credits_data = remote_functions.From1c2py('credits')
-            # for credit_data in credits_data.data:
-            #     self.set_credit(*credit_data.data)
-        except WebFault:
-            return -1
-        # self.recreate_refs()
-        return res_data
-'''
+    def post_docs(self):
+        pass

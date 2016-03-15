@@ -52,7 +52,7 @@ class OnePocket(SimpleObject):
         # изменение баланса
         if type(balance) == float or int:
             self.balance = balance
-        elif type(balance) == str:
+        elif type(balance) == str or type(balance) == unicode:
             self.balance = float(balance.replace(" ", "").replace(",", "."))
 
     def get_info(self):
@@ -129,7 +129,7 @@ class Pockets:
         so.__name__ = self.simple_objects['Currency']
         self.currency.append(so)
 
-    def set_pocket(self, name, currency='', balance=0, **kwargs):
+    def set_pocket(self, name, currency, balance=0, **kwargs):
         # добавление еще одного кошелька в список
         # или обновление баланса существующего кошелька
         exist = False
@@ -260,6 +260,7 @@ class Pockets:
             for i in self.currency:
                 if i.name == obj_name:
                     return i
+        return None
 
     def find_by_key(self, key, obj_type=None):
         if obj_type == self.simple_objects['OnePocket'] or obj_type is None:
@@ -624,35 +625,64 @@ class Pockets:
 
     def parse_income_cur(self, data):
         for i in data:
+            if 'IsFolder' in i and i['IsFolder'] == True:
+                continue
             self.set_cur(i['Description'], **i)
 
     def parse_income_in_items(self, data):
         for i in data:
+            if 'IsFolder' in i and i['IsFolder'] == True:
+                continue
             self.set_in_item(i['Description'], **i)
 
     def parse_income_out_items(self, data):
         for i in data:
+            if 'IsFolder' in i and i['IsFolder'] == True:
+                continue
             self.set_out_item(i['Description'], **i)
 
     def parse_income_contacts(self, data):
         for i in data:
+            if 'IsFolder' in i and i['IsFolder'] == True:
+                continue
             self.set_contact(i['Description'], **i)
 
     def parse_income_pockets(self, data):
         for i in data:
+            if 'IsFolder' in i and i['IsFolder'] == True:
+                continue
             self.set_pocket(i['Description'],
-                            self.find_by_key(i[u'Валюта_Key'],
-                                             self.simple_objects['Currency']),
+                            unicode(self.find_by_key(
+                                i[u'Валюта_Key'],
+                                self.simple_objects['Currency'])),
                             0, **i)
 
     def parse_income_credits(self, data):
         for i in data:
+            if 'IsFolder' in i and i['IsFolder'] == True:
+                continue
             self.set_credit(i['Description'],
-                            self.find_by_key(i[u'Валюта_Key'],
-                                             self.simple_objects['Currency']),
-                            self.find_by_key(i[u'Контакт_Key'],
-                                             self.simple_objects['OneContact'])
+                            unicode(self.find_by_key(
+                                i[u'Валюта_Key'],
+                                self.simple_objects['Currency'])),
+                            unicode(self.find_by_key(
+                                i[u'Контакт_Key'],
+                                self.simple_objects['OneContact']))
                             , 0, **i)
+
+    def parse_balance(self, data):
+        for i in data:
+            one_instance = None
+            if (i['ExtDimension1_Type'] ==
+                    u'StandardODATA.Catalog_КошелькиИСчета'):
+                one_instance = self.find_by_key(
+                    i['ExtDimension1'], self.simple_objects['OnePocket'])
+            if (i['ExtDimension1_Type'] ==
+                    u'StandardODATA.Catalog_Долги'):
+                one_instance = self.find_by_key(
+                    i['ExtDimension1'], self.simple_objects['OneCredit'])
+            if one_instance is not None:
+                one_instance.set_balance(i[u'ВалютнаяСуммаBalance'])
 
     def parsing_functions(self):
         return {self.simple_objects['Currency']: self.parse_income_cur,
@@ -660,13 +690,26 @@ class Pockets:
                 self.simple_objects['OneOutItem']: self.parse_income_out_items,
                 self.simple_objects['OneContact']: self.parse_income_contacts,
                 self.simple_objects['OnePocket']: self.parse_income_pockets,
-                self.simple_objects['OneCredit']: self.parse_income_credits}
+                self.simple_objects['OneCredit']: self.parse_income_credits,
+                'Balance': self.parse_balance}
 
     def get_data(self):
-        if hasattr(self, 'settings'):
+        if (hasattr(self, 'settings') and
+                "Authorization" in self.settings and
+                len(self.settings["Authorization"]) > 0):
             self.get_settings()
             sr = PocketDB.ODataRequests(self.settings)
             sr.get_refs(self.parsing_functions())
+            self.db.recreate_refs(self)
+
+    def post_data(self):
+        if (hasattr(self, 'settings') and
+                "Authorization" in self.settings and
+                len(self.settings["Authorization"]) > 0):
+            self.get_settings()
+            sr = PocketDB.ODataRequests(self.settings)
+            sr.post_docs()
+            self.db.recreate_docs()
 
 
     # TODO если БД не прокатит, то чтение инфы о кошельках и остатках из файлов
