@@ -839,6 +839,19 @@ class ODataRequests:
             return result.read()
         raise Exception(u'Get url не удался...')
 
+    def post(self, url, body):
+        headers = {
+            'Authorization': self.settings['Authorization']
+        }
+        req = urllib2.Request(url, body, headers)
+        # try:
+        result = urllib2.urlopen(req)
+        # except:
+        #     raise Exception(u'Что-то пошло не так...')
+        if result.getcode() == 201:
+            return result.read()
+        raise Exception(u'Post url не удался...')
+
     def get_currency(self):
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
                self.fix_set['ref_cur'] + self.fix_set['json_format'])
@@ -912,5 +925,43 @@ class ODataRequests:
         if 'Balance' in callback_funcs:
             callback_funcs['Balance'](self.get_balance())
 
+    def post_action_in(self):
+        url = (self.settings['URL'] + self.fix_set['odata_url'] +
+               self.fix_set['doc_in'] + self.fix_set['json_format'])
+        value = {
+            #"DataVersion": "AAAAAAAAAAA=",
+            #"DeletionMark": False,
+            "Date": "2016-03-16T22:22:22",
+            "Posted": True,
+            #u"ВалютаОперации_Key": "6fac90d6-7303-11dc-89ad-00195b6993ba",
+            #u"Комментарий": "",
+            #u"ОписаниеОперации": u"Тест Дохода!",
+            #u"Пользователь_Key": "c2560050-11bd-11e4-589e-0018f3e1b84e",
+            #u"ПредставлениеАналитики": "",
+            #u"ПредставлениеКошельков": u"Представление Кошелечка",
+            #u"ПредставлениеСтатей": u"Наэрн зарплата",
+            u"СуммаОперации": 100000,
+            #u"ЭтоПлановаяОперация": False,
+            #u"ЭтоШаблон": False,
+            u"Доходы": [{
+                "LineNumber": "1",
+                #u"Кошелек_Key": "85565e0a-11bf-11e4-589e-0018f3e1b84e",
+                u"Кошелек_Key": "c4182b70-ca31-11e4-1491-0018f3e1b84e",
+                u"СтатьяДохода_Key": "f8bbc04a-70bc-11dc-89ac-00195b6993ba",
+                u"СуммаДохода": 1000,
+                u"Комментарий": u"тест",
+            #    u"АналитикаСтатьи_Key": "00000000-0000-0000-0000-000000000000",
+                u"СуммаВВалютеОперации": 100000,
+                u"Курс": 100,
+                u"Кратность": "1",
+            #    u"ФинансоваяЦель_Key": "00000000-0000-0000-0000-000000000000"
+            }],
+            #u"АналитикаДокумента": []
+        }
+        web_doc = self.post(url, json.dumps(value))
+        dict_doc = json.loads(web_doc)
+        #todo post в регистр бухгалтерии
+        return dict_doc
+
     def post_docs(self):
-        pass
+        self.post_action_in()
