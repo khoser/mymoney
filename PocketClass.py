@@ -39,6 +39,39 @@ class SimpleObject:
         return "%s:\n%s" % (self.name, kw)
 
 
+class OneCurrency(SimpleObject):
+    """Один кошелек со своей валютой и баллансом"""
+    def __init__(self, name, course=1, multiplicity='1', **kwargs):
+        SimpleObject.__init__(self, name, **kwargs)
+        self.__name__ = 'OneCurrency'
+        self.set_course(course, multiplicity)
+
+    def set_course(self, course, multiplicity='1'):
+        if type(course) == float or int:
+            self.course = course
+        elif type(course) == str or type(course) == unicode:
+            self.balance = float(course.replace(" ", "").replace(",", "."))
+        self.multiplicity = multiplicity
+
+    def coeff(self):
+        ret_val = 1
+        if type(self.course) in [int, float] and self.course != 0:
+            ret_val = self.course
+        if float(self.multiplicity) != 0:
+            ret_val /= self.multiplicity
+        return ret_val
+
+
+    def get_info(self):
+        # вывод информации в виде строки
+        kw = ''
+        ks = self.kwargs.keys()
+        ks.sort()
+        for k in ks:
+            kw += '                    %s: %s \n' % (k, self.kwargs[k])
+        return "%s: %s %s\n%s" % (self.name, self.balance, self.currency, kw)
+
+
 class OnePocket(SimpleObject):
     """Один кошелек со своей валютой и баллансом"""
     def __init__(self, name, currency, balance=0, **kwargs):
@@ -104,7 +137,7 @@ class Pockets:
             'OneOutItem': 'OneOutItem',
             'OneInItem': 'OneInItem',
             'OneContact': 'OneContact',
-            'Currency': 'Currency'
+            'OneCurrency': 'OneCurrency'
         }
         self.db = PocketDB.PocketsDB(db_name)
         self.actions_names = {
@@ -123,11 +156,15 @@ class Pockets:
     def _drop_db(self):
         self.db._drops()
 
-    def set_cur(self, name, **kwargs):
+    def set_cur(self, name, course=1, multiplicity='1', **kwargs):
         # добавление валюты в словарь
-        so = SimpleObject(name, **kwargs)
-        so.__name__ = self.simple_objects['Currency']
-        self.currency.append(so)
+        exist = False
+        for x in self.currency:
+            if name == x.name:
+                exist = True
+                x.set_course()
+        if not exist:
+            self.currency.append(OneCurrency(name, course, multiplicity, **kwargs))
 
     def set_pocket(self, name, currency, balance=0, **kwargs):
         # добавление еще одного кошелька в список
@@ -221,7 +258,7 @@ class Pockets:
                  'OneOutItem': self.out_items,
                  'OneInItem': self.in_items,
                  'OneContact': self.contacts,
-                 'Currency': self.currency
+                 'OneCurrency': self.currency
                  }
         for key in attrs:
             s_names = []
@@ -256,7 +293,7 @@ class Pockets:
             for i in self.in_items:
                 if i.name == obj_name:
                     return i
-        if obj_type == self.simple_objects['Currency'] or obj_type is None:
+        if obj_type == self.simple_objects['OneCurrency'] or obj_type is None:
             for i in self.currency:
                 if i.name == obj_name:
                     return i
@@ -288,11 +325,12 @@ class Pockets:
                 if i.kwargs.has_key('Ref_Key'):
                     if i.kwargs['Ref_Key'] == key:
                         return i
-        if obj_type == self.simple_objects['Currency'] or obj_type is None:
+        if obj_type == self.simple_objects['OneCurrency'] or obj_type is None:
             for i in self.currency:
                 if i.kwargs.has_key('Ref_Key'):
                     if i.kwargs['Ref_Key'] == key:
                         return i
+        return None
 
     def create_db(self):
         """
@@ -310,8 +348,9 @@ class Pockets:
         # валюты:
         for data in self.db.get_currency():
             self.set_cur(
-                data,
-                **self.db.get_kwargs(data[0], self.simple_objects['Currency'])
+                *data,
+                **self.db.get_kwargs(data[0],
+                                     self.simple_objects['OneCurrency'])
             )
         # кошельки:
         for data in self.db.get_pockets():
@@ -396,7 +435,6 @@ class Pockets:
         перемещение
         из кошелька в кошелек сумму
         """
-        action_name = 3
         if type(summ) != float and type(summ) != int:
             return 1
         allright = True
@@ -627,7 +665,7 @@ class Pockets:
         for i in data:
             if 'IsFolder' in i and i['IsFolder'] == True:
                 continue
-            self.set_cur(i['Description'], **i)
+            self.set_cur(i['Description'], 1, '1', **i)
 
     def parse_income_in_items(self, data):
         for i in data:
@@ -654,7 +692,7 @@ class Pockets:
             self.set_pocket(i['Description'],
                             unicode(self.find_by_key(
                                 i[u'Валюта_Key'],
-                                self.simple_objects['Currency'])),
+                                self.simple_objects['OneCurrency'])),
                             0, **i)
 
     def parse_income_credits(self, data):
@@ -664,7 +702,7 @@ class Pockets:
             self.set_credit(i['Description'],
                             unicode(self.find_by_key(
                                 i[u'Валюта_Key'],
-                                self.simple_objects['Currency'])),
+                                self.simple_objects['OneCurrency'])),
                             unicode(self.find_by_key(
                                 i[u'Контакт_Key'],
                                 self.simple_objects['OneContact']))
@@ -684,14 +722,22 @@ class Pockets:
             if one_instance is not None:
                 one_instance.set_balance(i[u'ВалютнаяСуммаBalance'])
 
+    def parse_courses(self, data):
+        for i in data:
+            one_instance = self.find_by_key(
+                i[u'Валюта_Key'], self.simple_objects['OneCurrency'])
+            if one_instance is not None:
+                one_instance.set_course(i[u'Курс'], i[u'Кратность'])
+
     def parsing_functions(self):
-        return {self.simple_objects['Currency']: self.parse_income_cur,
+        return {self.simple_objects['OneCurrency']: self.parse_income_cur,
                 self.simple_objects['OneInItem']: self.parse_income_in_items,
                 self.simple_objects['OneOutItem']: self.parse_income_out_items,
                 self.simple_objects['OneContact']: self.parse_income_contacts,
                 self.simple_objects['OnePocket']: self.parse_income_pockets,
                 self.simple_objects['OneCredit']: self.parse_income_credits,
-                'Balance': self.parse_balance}
+                'Balance': self.parse_balance,
+                'Courses': self.parse_courses}
 
     def get_data(self):
         if (hasattr(self, 'settings') and
@@ -702,13 +748,40 @@ class Pockets:
             sr.get_refs(self.parsing_functions())
             self.db.recreate_refs(self)
 
+    def format_data(self):
+        data_dict = self.db.prepare_send_data()
+        data_dict.sort()
+        ret_value = []
+        for d in data_dict:
+            date = d[1]  # '2016-03-17T22:22:22'
+            if d[0] == 1:
+                pocket = self.get_one(d[2], self.simple_objects['OnePocket'])
+                item = self.get_one(d[3], self.simple_objects['OneInItem'])
+                currency = self.get_one(unicode(pocket.currency),
+                                        self.simple_objects['OneCurrency'])
+                ret_value.append(
+                    {'Date': date,
+                     'comment': '',
+                     'pocket_key': pocket.kwargs['Ref_Key'],
+                     'item_in_key': item.kwargs['Ref_Key'],
+                     'sum': float(d[4]),
+                     'line_comment': d[5],
+                     'sum_rub': float(d[4]) * currency.coeff(),
+                     'course': currency.course,
+                     'multiplicity': currency.multiplicity,
+                    }
+                )
+            # todo next
+
     def post_data(self):
         if (hasattr(self, 'settings') and
                 "Authorization" in self.settings and
                 len(self.settings["Authorization"]) > 0):
             self.get_settings()
             sr = PocketDB.ODataRequests(self.settings)
-            sr.post_docs()
+            data_dict = self.db.prepare_send_data()
+            data_dict.sort()
+            sr.post_docs(data_dict)
             self.db.recreate_docs()
 
 

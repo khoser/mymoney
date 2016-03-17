@@ -152,7 +152,7 @@ class TestAll(unittest.TestCase):
     #     pdb._drops()
     #
     # def test_get_data(self):
-    #     currency = [u'руб', u'USD', u'EUR']
+    #     currency = [[u'руб', 11, '2'], [u'USD', 2, '3'], [u'EUR', 1, '1']]
     #     in_items = [u'item1', u'item2', u'Item3']
     #     out_items = [u'Item4', u'Item5', u'item6']
     #     contacts = [u'contact 1', u'contact 2', u'contact 3']
@@ -165,7 +165,7 @@ class TestAll(unittest.TestCase):
     #     pcs = PocketClass.Pockets('test4_db')
     #     pdb = pcs.db
     #     for i in currency:
-    #         pcs.set_cur(i)
+    #         pcs.set_cur(*i)
     #     for i in in_items:
     #         pcs.set_in_item(i)
     #     for i in out_items:
