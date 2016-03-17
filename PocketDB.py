@@ -793,9 +793,10 @@ class ODataRequests:
         self.__name__ = 'ODataRequests'
         self.fix_set = {'odata_url': '/odata/standard.odata/',
                         'json_format': '/?$format=json;odata=nometadata',
+                        'post': '/Post?PostingModeOperational=false',
                         'journ_oper': 'AccountingRegister_' +
-                                      urllib2.quote('ЖурналОпераций') +
-                                      '/Balance',
+                                      urllib2.quote('ЖурналОпераций'),
+                        'balance': '/Balance',
                         'ref_cur': 'Catalog_' +
                                    urllib2.quote('Валюты'),
                         'ref_pockets': 'Catalog_' +
@@ -903,7 +904,8 @@ class ODataRequests:
 
     def get_balance(self):
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
-               self.fix_set['journ_oper'] + self.fix_set['json_format'])
+               self.fix_set['journ_oper'] + self.fix_set['balance'] +
+               self.fix_set['json_format'])
         web_pockets = self.get(url)
         dict_pockets = json.loads(web_pockets)
         # print dict_pockets
@@ -961,6 +963,10 @@ class ODataRequests:
         web_doc = self.post(url, json.dumps(value))
         dict_doc = json.loads(web_doc)
         #todo post в регистр бухгалтерии
+        url = (self.settings['URL'] + self.fix_set['odata_url'] +
+               self.fix_set['doc_in'] + "(guid'" + dict_doc['Ref_Key'] + "')" +
+               self.fix_set['post'])
+        self.get(url)
         return dict_doc
 
     def post_docs(self):
