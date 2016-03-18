@@ -777,17 +777,59 @@ class Pockets:
                 item = self.get_one(d[3], self.simple_objects['OneOutItem'])
                 currency = self.get_one(unicode(pocket.currency),
                                         self.simple_objects['OneCurrency'])
+                amount = 0
+                if (u'КоличественныйУчет' in currency.kwargs
+                    and currency.kwargs[u'КоличественныйУчет']):
+                    amount = float(d[5])
                 ret_value.append(
                     {'action': 2,
                      'Date': date,
                      'comment': '',
                      'pocket_key': pocket.kwargs['Ref_Key'],
+                     'currency_key': currency.kwargs['Ref_Key'],
                      'item_out_key': item.kwargs['Ref_Key'],
                      'sum': float(d[4]),
-                     'amount': float(d[5]),
+                     'amount': amount,
                      'line_comment': d[6]
                     }
                 )
+            if d[0] == 3:
+                pocket_out = self.get_one(d[2], self.simple_objects['OnePocket'])
+                pocket_in = self.get_one(d[3], self.simple_objects['OnePocket'])
+                currency = self.get_one(unicode(pocket_out.currency),
+                                        self.simple_objects['OneCurrency'])
+                ret_value.append(
+                    {'action': 3,
+                     'Date': date,
+                     'pocket_out_key': pocket_out.kwargs['Ref_Key'],
+                     'pocket_in_key': pocket_in.kwargs['Ref_Key'],
+                     'currency_key': currency.kwargs['Ref_Key'],
+                     'sum': float(d[4]),
+                     'line_comment': d[5]
+                    }
+                )
+            if d[0] == 4:
+                pocket_out = self.get_one(d[2], self.simple_objects['OnePocket'])
+                pocket_in = self.get_one(d[3], self.simple_objects['OnePocket'])
+                currency_out = self.get_one(unicode(pocket_out.currency),
+                                            self.simple_objects['OneCurrency'])
+                currency_in = self.get_one(unicode(pocket_in.currency),
+                                           self.simple_objects['OneCurrency'])
+                ret_value.append(
+                    {'action': 4,
+                     'Date': date,
+                     'pocket_out_key': pocket_out.kwargs['Ref_Key'],
+                     'pocket_in_key': pocket_in.kwargs['Ref_Key'],
+                     'currency_out_key': currency_out.kwargs['Ref_Key'],
+                     'currency_in_key': currency_in.kwargs['Ref_Key'],
+                     'sum_out': float(d[4]),
+                     'sum_in': float(d[5]),
+                     'line_comment': d[6]
+                    }
+                )
+
+
+
             # todo next
 
     def post_data(self):

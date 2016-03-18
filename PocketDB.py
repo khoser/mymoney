@@ -972,15 +972,88 @@ class ODataRequests:
         self.get(url)
         return dict_doc
 
+    def post_action_out(self, data):
+        url = (self.settings['URL'] + self.fix_set['odata_url'] +
+               self.fix_set['doc_out'] + self.fix_set['json_format'])
+        value = {
+            "Date": data['Date'],
+            # u"РазделУчета_Key": "44747adc-5dd5-11e3-95ac-005056c00008",
+            u"КошелекДолг": data['pocket_key'],
+            u"КошелекДолг_Type": u"StandardODATA.Catalog_КошелькиИСчета",
+            u"ВалютаОперации_Key": data['currency_key'],
+            # u"СуммаОплаты": data['sum'],
+            u"Комментарий": data['comment'],
+            u"Расходы": [{
+                "LineNumber": "1",
+                u"СтатьяРасходаИмущество": data['item_out_key'],
+                u"СтатьяРасходаИмущество_Type":
+                    "StandardODATA.Catalog_СтатьиРасходов",
+                u"Сумма": data['sum'],
+                u"Количество": data['amount'],
+                u"КомментарийСтроки": data['line_comment']
+            }],
+        }
+        web_doc = self.post(url, json.dumps(value))
+        dict_doc = json.loads(web_doc)
+        url = (self.settings['URL'] + self.fix_set['odata_url'] +
+               self.fix_set['doc_out'] + self.guid(dict_doc['Ref_Key']) +
+               self.fix_set['post'])
+        self.get(url)
+        return dict_doc
+
+    def post_action_between(self, data):
+        url = (self.settings['URL'] + self.fix_set['odata_url'] +
+               self.fix_set['doc_between'] + self.fix_set['json_format'])
+        value = {
+            "Date": data['date'],
+            # u"СчетОткуда_Key": "44747adc-5dd5-11e3-95ac-005056c00008",
+            # u"СчетКуда_Key": "44747adc-5dd5-11e3-95ac-005056c00008",
+            u"КошелекОткуда_Key": data['pocket_out_key'],
+            u"КошелекКуда_Key": data['pocket_in_key'],
+            u"СуммаОперации": data['sum'],
+            u"ВалютаОперации_Key": data['currency_key'],
+            u"Комментарий": data['line_comment']
+            # u"СписаноСУчетомРасходов": 1000,
+            # u"ПолученоСУчетомРасходов": 1000,
+        }
+        web_doc = self.post(url, json.dumps(value))
+        dict_doc = json.loads(web_doc)
+        url = (self.settings['URL'] + self.fix_set['odata_url'] +
+               self.fix_set['doc_between'] + self.guid(dict_doc['Ref_Key']) +
+               self.fix_set['post'])
+        self.get(url)
+        return dict_doc
+
+    def post_action_exchange(self, data):
+        url = (self.settings['URL'] + self.fix_set['odata_url'] +
+               self.fix_set['doc_exchange'] + self.fix_set['json_format'])
+        value = {
+            "Date": data['date'],
+            u"КошелекОткуда_Key": data['pocket_out_key'],
+            # u"ФинансоваяЦельОткуда_Key": "44747ae3-5dd5-11e3-95ac-005056c00008",
+            u"СуммаВыдано": data['sum_out'],
+            u"ВалютаСписания_Key": data['currency_out_key'],
+            u"КошелекКуда_Key": data['pocket_in_key'],
+            # u"ФинансоваяЦельКуда_Key": "44747ae3-5dd5-11e3-95ac-005056c00008",
+            u"СуммаПолучено": data['sum_in'],
+            u"ВалютаПоступления_Key": data['currency_in_key'],
+            # u"РасходыИзКошелькаПоступления": data['pocket_in_sum_out'],
+            # u"РасходыИзКошелькаСписания": data['pocket_out_sum_out'],
+            u"Комментарий": data['line_comment'],
+            u"СписаноСУчетомКомиссии": data['sum_out'],
+            u"ПолученоСУчетомКомиссии": data['sum_in']
+        }
+        web_doc = self.post(url, json.dumps(value))
+        dict_doc = json.loads(web_doc)
+        url = (self.settings['URL'] + self.fix_set['odata_url'] +
+               self.fix_set['doc_exchange'] + self.guid(dict_doc['Ref_Key']) +
+               self.fix_set['post'])
+        self.get(url)
+        return dict_doc
+
     def post_docs(self, data):
-        # data_in = {'Date': '2016-03-17T22:22:22',
-        #         'comment': u'Комментарий',
-        #         'pocket_key': 'c4182b70-ca31-11e4-1491-0018f3e1b84e',
-        #         'item_in_key': 'f8bbc04a-70bc-11dc-89ac-00195b6993ba',
-        #         'sum': 100.0,
-        #         'line_comment': u'Комментарий строки',
-        #         'sum_rub': 100.0,
-        #         'course': 1,
-        #         'multiplicity': "1",
-        #         }
-        self.post_action_in(data)
+        for d in data:
+            if d[0] == 1:
+                self.post_action_in(d)
+            if d[0] == 2:
+                self.post_action_out(d)
