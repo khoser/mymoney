@@ -748,7 +748,7 @@ class Pockets:
             sr.get_refs(self.parsing_functions())
             self.db.recreate_refs(self)
 
-    def format_data(self):
+    def reformat_data(self):
         data_dict = self.db.prepare_send_data()
         data_dict.sort()
         ret_value = []
@@ -760,7 +760,8 @@ class Pockets:
                 currency = self.get_one(unicode(pocket.currency),
                                         self.simple_objects['OneCurrency'])
                 ret_value.append(
-                    {'Date': date,
+                    {'action': 1,
+                     'Date': date,
                      'comment': '',
                      'pocket_key': pocket.kwargs['Ref_Key'],
                      'item_in_key': item.kwargs['Ref_Key'],
@@ -769,6 +770,22 @@ class Pockets:
                      'sum_rub': float(d[4]) * currency.coeff(),
                      'course': currency.course,
                      'multiplicity': currency.multiplicity,
+                    }
+                )
+            if d[0] == 2:
+                pocket = self.get_one(d[2], self.simple_objects['OnePocket'])
+                item = self.get_one(d[3], self.simple_objects['OneOutItem'])
+                currency = self.get_one(unicode(pocket.currency),
+                                        self.simple_objects['OneCurrency'])
+                ret_value.append(
+                    {'action': 2,
+                     'Date': date,
+                     'comment': '',
+                     'pocket_key': pocket.kwargs['Ref_Key'],
+                     'item_out_key': item.kwargs['Ref_Key'],
+                     'sum': float(d[4]),
+                     'amount': float(d[5]),
+                     'line_comment': d[6]
                     }
                 )
             # todo next
