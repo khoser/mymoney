@@ -190,6 +190,7 @@ class PocketsDB:
                 Credit VARCHAR(50),
                 Summ FLOAT,
                 AdditionalSumm FLOAT,
+                PercentSumm FLOAT,
                 Comment TEXT);
 --мы дали в долг 8
             DROP TABLE IF EXISTS Credit2OutAction;
@@ -200,6 +201,7 @@ class PocketsDB:
                 Credit VARCHAR(50),
                 Summ FLOAT,
                 AdditionalSumm FLOAT,
+                PercentSumm FLOAT,
                 Comment TEXT);
             """)
         con.commit()
@@ -430,7 +432,7 @@ class PocketsDB:
         self.add_action(action_name, lid)
 
     def action_credit2_in(self, pocket_name, credit_name,
-                          summ, addit_summ, comment):
+                          summ, addit_summ, percent_sum, comment):
         """
         нам вернули долг
         в кошелек по кредиту от контакта сумму
@@ -439,8 +441,9 @@ class PocketsDB:
         con = sqlite3.connect(self.db_name)
         cur = con.cursor()
         cur.execute(
-            "INSERT INTO Credit2InAction VALUES (NULL, ?, ?, ?, ?, ?, ?)",
-            (action_name, pocket_name, credit_name, summ, addit_summ, comment)
+            "INSERT INTO Credit2InAction VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)",
+            (action_name, pocket_name, credit_name,
+             summ, addit_summ, percent_sum, comment)
         )
         lid = cur.lastrowid
         con.commit()
@@ -467,7 +470,7 @@ class PocketsDB:
         self.add_action(action_name, lid)
 
     def action_credit2_out(self, pocket_name, credit_name,
-                           summ, addit_summ, comment):
+                           summ, addit_summ, percent_sum, comment):
         """
         мы дали в долг
         из кошелька по кредиту контакту сумму
@@ -476,8 +479,9 @@ class PocketsDB:
         con = sqlite3.connect(self.db_name)
         cur = con.cursor()
         cur.execute(
-            "INSERT INTO Credit2OutAction VALUES (NULL, ?, ?, ?, ?, ?, ?)",
-            (action_name, pocket_name, credit_name, summ, addit_summ, comment)
+            "INSERT INTO Credit2OutAction VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)",
+            (action_name, pocket_name, credit_name,
+             summ, addit_summ, percent_sum, comment)
         )
         lid = cur.lastrowid
         con.commit()
@@ -688,7 +692,7 @@ class PocketsDB:
                         cast(BetweenAction.PocketOut    as text) AS Value1,
                         cast(BetweenAction.PocketIn     as text) AS Value2,
                         cast(BetweenAction.Summ         as text) AS Value3,
-                        BetweenAction.Comment AS Value4,
+                        BetweenAction.Comment                    AS Value4,
                         '-' AS Value5,
                         '-' AS Value6,
                         '-' AS Value7
@@ -716,7 +720,7 @@ class PocketsDB:
                         cast(Credit1InAction.Pocket         as text) AS Value1,
                         cast(Credit1InAction.Credit         as text) AS Value2,
                         cast(Credit1InAction.Summ           as text) AS Value3,
-                        Credit1InAction.Comment AS Value4,
+                        Credit1InAction.Comment                      AS Value4,
                         cast(Credits.Contact                as text) AS Value5,
                         cast(Credit1InAction.AdditionalSumm as text) AS Value6,
                         '-' AS Value7
@@ -731,7 +735,7 @@ class PocketsDB:
                         cast(Credit1OutAction.Pocket            as text) AS Value1,
                         cast(Credit1OutAction.Credit            as text) AS Value2,
                         cast(Credit1OutAction.Summ              as text) AS Value3,
-                        Credit1OutAction.Comment AS Value4,
+                        Credit1OutAction.Comment                         AS Value4,
                         cast(Credits.Contact                    as text) AS Value5,
                         cast(Credit1OutAction.AdditionalSumm    as text) AS Value6,
                         cast(Credit1OutAction.PercentSumm       as text) AS Value7
@@ -746,10 +750,10 @@ class PocketsDB:
                         cast(Credit2InAction.Pocket         as text) AS Value1,
                         cast(Credit2InAction.Credit         as text) AS Value2,
                         cast(Credit2InAction.Summ           as text) AS Value3,
-                        Credit2InAction.Comment AS Value4,
+                        Credit2InAction.Comment                      AS Value4,
                         cast(Credits.Contact                as text) AS Value5,
                         cast(Credit2InAction.AdditionalSumm as text) AS Value6,
-                        '-' AS Value7
+                        cast(Credit2InAction.PercentSumm    as text) AS Value7
                     FROM Credit2InAction as Credit2InAction
                         LEFT JOIN Credits as Credits ON Credits.Name = Credit2InAction.Credit
 
@@ -758,13 +762,13 @@ class PocketsDB:
                     SELECT
                         Credit2OutAction.Id AS Id,
                         Credit2OutAction.Action_name AS Action_name,
-                        cast(Credit2OutAction.Pocket as text) AS Value1,
-                        cast(Credit2OutAction.Credit as text) AS Value2,
-                        cast(Credit2OutAction.Summ as text) AS Value3,
-                        Credit2OutAction.Comment AS Value4,
-                        cast(Credits.Contact as text) AS Value5,
+                        cast(Credit2OutAction.Pocket as text)         AS Value1,
+                        cast(Credit2OutAction.Credit as text)         AS Value2,
+                        cast(Credit2OutAction.Summ as text)           AS Value3,
+                        Credit2OutAction.Comment                      AS Value4,
+                        cast(Credits.Contact as text)                 AS Value5,
                         cast(Credit2OutAction.AdditionalSumm as text) AS Value6,
-                        '-' AS Value7
+                        cast(Credit2OutAction.PercentSumm    as text) AS Value7
                     FROM Credit2OutAction as Credit2OutAction
                         LEFT JOIN Credits as Credits ON Credits.Name = Credit2OutAction.Credit
 
@@ -1047,6 +1051,97 @@ class ODataRequests:
         dict_doc = json.loads(web_doc)
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
                self.fix_set['doc_exchange'] + self.guid(dict_doc['Ref_Key']) +
+               self.fix_set['post'])
+        self.get(url)
+        return dict_doc
+
+    def post_action_credit1_in(self, data):
+        url = (self.settings['URL'] + self.fix_set['odata_url'] +
+               self.fix_set['doc_credit1_in'] + self.fix_set['json_format'])
+        value = {
+            u"Date": data['date'],
+            u"Кредитор_Key": data['contact_key'],
+            u"Кредит_Key": data['credit_key'],
+            u"Кошелек_Key": data['pocket_key'],
+            #"ФинансоваяЦель_Key": "44747ae3-5dd5-11e3-95ac-005056c00008",
+            u"ВалютаПолучено_Key": data['currency_key'],
+            u"СуммаПолучено": data['sum'],
+            u"ВалютаКредита_Key": data['currency_key'],
+            u"СуммаКредита": data['sum'],
+            # "Пользователь_Key": "00000000-0000-0000-0000-000000000000",
+            # "ОписаниеОперации": "Мы взяли в долг [обеды] в кошелек [Наличные Олег]",
+            u"Комментарий": data['line_comment'],
+            u"СуммаДополнительныхРасходов": data['addit_sum']
+            # "РазделУчета_Key": "44747ad5-5dd5-11e3-95ac-005056c00008"
+        }
+        web_doc = self.post(url, json.dumps(value))
+        dict_doc = json.loads(web_doc)
+        url = (self.settings['URL'] + self.fix_set['odata_url'] +
+               self.fix_set['doc_credit1_in'] + self.guid(dict_doc['Ref_Key']) +
+               self.fix_set['post'])
+        self.get(url)
+        return dict_doc
+
+    def post_action_credit1_out(self, data):
+        url = (self.settings['URL'] + self.fix_set['odata_url'] +
+               self.fix_set['doc_credit1_out'] + self.fix_set['json_format'])
+        value = {
+            u"Date": data['date'],
+            u"ВалютаКошелька_Key": data['currency_key'],
+            u"ВалютаКредита_Key": data['currency_key'],
+            u"ВыплаченоКомиссии": data['additional_sum'],
+            u"ВыплаченоКредита": data['sum'],
+            u"ВыплаченоПроцентов": data['percent_sum'],
+            u"Комментарий": data['comment'],
+            u"Кошелек_Key": data['pocket_key'],
+            u"КратностьВалютыКошелька": data['multiplicity'],
+            u"КратностьВалютыКредита": data['multiplicity'],
+            u"Кредит_Key": data['credit_key'],
+            u"Кредитор_Key": data['contact_key'],
+            u"КурсВалютыКошелька": data['course'],
+            u"КурсВалютыКредита": data['course'],
+            u"СписаноКредита": 0,
+            # u"СтатьяРасходовПоКомиссии_Key": "00000000-0000-0000-0000-000000000000",
+            u"СтатьяРасходовПоПроцентам_Key": data['percent_item_key'],
+            # u"СтатьяСписания_Key": "00000000-0000-0000-0000-000000000000",
+            u"СуммаДополнительныхРасходов": data['additional_sum'],
+            u"СуммаКредитаВВалютеКредита": data['sum'],
+            u"СуммаОперации": data['total_sum'],
+            u"СуммаПроцентовВВалютеКредита": data['percent_sum'],
+            # u"ФинансоваяЦель_Key": "00000000-0000-0000-0000-000000000000"
+        }
+        web_doc = self.post(url, json.dumps(value))
+        dict_doc = json.loads(web_doc)
+        url = (self.settings['URL'] + self.fix_set['odata_url'] +
+               self.fix_set['doc_credit1_out'] + self.guid(dict_doc['Ref_Key']) +
+               self.fix_set['post'])
+        self.get(url)
+        return dict_doc
+
+    def post_action_credit2_in(self, data):
+        url = (self.settings['URL'] + self.fix_set['odata_url'] +
+               self.fix_set['doc_credit2_in'] + self.fix_set['json_format'])
+        value = {
+            u"Date": data['date'],
+            u"ВалютаДолга_Key": data['currency_key'],
+            u"ВалютаПолучено_Key": data['currency_key'],
+            u"ВсегоСуммаПоступления": data['sum'],
+            u"Долг_Key": data['credit_key'],
+            u"Комментарий": data['comment'],
+            u"Контакт_Key": data['contact_key'],
+            u"Кошелек_Key": data['pocket_key'],
+            u"СтатьяДоходовПоПроцентам_Key": data['item_key'],
+            u"СуммаВозвратаДолга": data['sum'],
+            u"СуммаДополнительныхРасходов": data['additional_sum'],
+            u"СуммаПолучено": data['sum'],
+            u"СуммаПроцентов": data['percent_sum'],
+            u"СуммаПроцентовВВалютеДолга": data['percent_sum'],
+            u"СуммаСписания": 0,
+        }
+        web_doc = self.post(url, json.dumps(value))
+        dict_doc = json.loads(web_doc)
+        url = (self.settings['URL'] + self.fix_set['odata_url'] +
+               self.fix_set['doc_credit2_in'] + self.guid(dict_doc['Ref_Key']) +
                self.fix_set['post'])
         self.get(url)
         return dict_doc

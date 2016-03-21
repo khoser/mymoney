@@ -536,13 +536,15 @@ class Pockets:
         self.db.upd_credit_balance(cr.name, cr.balance)
         self.db.action_credit1_in(pc.name, cr.name, summ, addit_summ, comment)
 
-    def action_credit2_in(self, pocket, credit, summ, addit_summ, comment=''):
+    def action_credit2_in(self, pocket, credit, summ, addit_summ,
+                          percent_sum, comment=''):
         """
         нам вернули долг
         в кошелек по кредиту от контакта сумму
         """
-        if (type(summ) != float and type(summ) != int
-            or type(addit_summ) != float and type(addit_summ) != int):
+        if (type(summ) != float and type(summ) != int or
+                type(addit_summ) != float and type(addit_summ) != int or
+                type(percent_sum) != float and type(percent_sum) != int):
             return 1
         allright = True
         if isinstance(pocket, OnePocket):
@@ -566,10 +568,11 @@ class Pockets:
         if not allright:
             return 1
         cr.balance -= summ
-        pc.balance += summ
+        pc.balance += (summ + percent_sum - addit_summ)
         self.db.upd_pocket_balance(pc.name, pc.balance)
         self.db.upd_credit_balance(cr.name, cr.balance)
-        self.db.action_credit2_in(pc.name, cr.name, summ, addit_summ, comment)
+        self.db.action_credit2_in(pc.name, cr.name, summ, addit_summ,
+                                  percent_sum, comment)
 
     def action_credit1_out(self, pocket, credit,
                            summ, addit_summ, percent_sum,
@@ -753,7 +756,7 @@ class Pockets:
         data_dict.sort()
         ret_value = []
         for d in data_dict:
-            date = d[1]  # '2016-03-17T22:22:22'
+            date = d[1]  # '2016-03-17T22:22:22' todo
             if d[0] == 1:
                 pocket = self.get_one(d[2], self.simple_objects['OnePocket'])
                 item = self.get_one(d[3], self.simple_objects['OneInItem'])
@@ -769,7 +772,7 @@ class Pockets:
                      'line_comment': d[5],
                      'sum_rub': float(d[4]) * currency.coeff(),
                      'course': currency.course,
-                     'multiplicity': currency.multiplicity,
+                     'multiplicity': currency.multiplicity
                     }
                 )
             if d[0] == 2:
@@ -827,9 +830,71 @@ class Pockets:
                      'line_comment': d[6]
                     }
                 )
-
-
-
+            if d[0] == 5:
+                pocket = self.get_one(d[2], self.simple_objects['OnePocket'])
+                credit = self.get_one(d[3], self.simple_objects['OneCredit'])
+                currency = self.get_one(unicode(pocket.currency),
+                                        self.simple_objects['OneCurrency'])
+                contact = self.get_one(d[6], self.simple_objects['OneContact'])
+                ret_value.append(
+                    {'action': 5,
+                     'Date': date,
+                     'contact_key': contact.kwargs['Ref_Key'],
+                     'credit_key': credit.kwargs['Ref_Key'],
+                     'pocket_key': pocket.kwargs['Ref_Key'],
+                     'currency_key': currency.kwargs['Ref_Key'],
+                     'sum': float(d[4]),
+                     'line_comment': d[5],
+                     'addit_sum': float(d[7])
+                    }
+                )
+            if d[0] == 6:
+                pocket = self.get_one(d[2], self.simple_objects['OnePocket'])
+                credit = self.get_one(d[3], self.simple_objects['OneCredit'])
+                currency = self.get_one(unicode(pocket.currency),
+                                        self.simple_objects['OneCurrency'])
+                contact = self.get_one(d[6], self.simple_objects['OneContact'])
+                item = self.get_one(u'Налоги, штрафы, комиссии',
+                                    self.simple_objects['OneOutItem'])
+                ret_value.append(
+                    {'action': 6,
+                     'Date': date,
+                     'currency_key': currency.kwargs['Ref_Key'],
+                     'additional_sum': float(d[7]),
+                     'sum': float(d[4]),
+                     'percent_sum': float(d[8]),
+                     'comment': d[5],
+                     'pocket_key': pocket.kwargs['Ref_Key'],
+                     'credit_key': credit.kwargs['Ref_Key'],
+                     'contact_key': contact.kwargs['Ref_Key'],
+                     'course': currency.course,
+                     'multiplicity': currency.multiplicity,
+                     'percent_item_key': item.kwargs['Ref_Key'],
+                     'total_sum': float(d[4]) + float(d[7]) + float(d[8])
+                    }
+                )
+            if d[0] == 7:
+                pocket = self.get_one(d[2], self.simple_objects['OnePocket'])
+                credit = self.get_one(d[3], self.simple_objects['OneCredit'])
+                currency = self.get_one(unicode(pocket.currency),
+                                        self.simple_objects['OneCurrency'])
+                contact = self.get_one(d[6], self.simple_objects['OneContact'])
+                item = self.get_one(u'Прочие доходы',
+                                    self.simple_objects['OneInItem'])
+                ret_value.append(
+                    {'action': 7,
+                     'Date': date,
+                     'currency_key': currency.kwargs['Ref_Key'],
+                     'sum': float(d[4]),
+                     'credit_key': credit.kwargs['Ref_Key'],
+                     'comment': d[5],
+                     'contact_key': contact.kwargs['Ref_Key'],
+                     'pocket_key': pocket.kwargs['Ref_Key'],
+                     'item_key': item.kwargs['Ref_Key'],
+                     'additional_sum': float(d[7]),
+                     'percent_sum': float(d[8])
+                    }
+                )
             # todo next
 
     def post_data(self):
