@@ -901,21 +901,17 @@ class Pockets:
                 currency = self.get_one(unicode(pocket.currency),
                                         self.simple_objects['OneCurrency'])
                 contact = self.get_one(d[6], self.simple_objects['OneContact'])
-                item = self.get_one(u'Прочие доходы',
-                                    self.simple_objects['OneInItem'])
                 ret_value.append(
                     {'action': 8,
                      'Date': date,
-                     'contact_key': ,
-                     'credit_key': ,
-                     'pocket_key': ,
-                     'currency_key': ,
-                     'sum': ,
-                     'currency_key': ,
-                     'sum': ,
-                     'comment': ,
-                     'additional_sum': ,
-                     'total_sum': 
+                     'contact_key': contact.kwargs['Ref_Key'],
+                     'credit_key': credit.kwargs['Ref_Key'],
+                     'pocket_key': pocket.kwargs['Ref_Key'],
+                     'currency_key': currency.kwargs['Ref_Key'],
+                     'sum': float(d[4]),
+                     'comment': d[5],
+                     'additional_sum': float(d[7]),
+                     'total_sum': float(d[4]) + float(d[7])
                      }
                 )
 
@@ -927,8 +923,8 @@ class Pockets:
             sr = PocketDB.ODataRequests(self.settings)
             data_dict = self.db.prepare_send_data()
             data_dict.sort()
-            sr.post_docs(data_dict)
-            self.db.recreate_docs()
+            if sr.post_docs(data_dict):
+                self.db.recreate_docs()
 
 
     # TODO если БД не прокатит, то чтение инфы о кошельках и остатках из файлов

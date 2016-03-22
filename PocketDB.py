@@ -201,7 +201,6 @@ class PocketsDB:
                 Credit VARCHAR(50),
                 Summ FLOAT,
                 AdditionalSumm FLOAT,
-                PercentSumm FLOAT,
                 Comment TEXT);
             """)
         con.commit()
@@ -470,7 +469,7 @@ class PocketsDB:
         self.add_action(action_name, lid)
 
     def action_credit2_out(self, pocket_name, credit_name,
-                           summ, addit_summ, percent_sum, comment):
+                           summ, addit_summ, comment):
         """
         мы дали в долг
         из кошелька по кредиту контакту сумму
@@ -479,9 +478,9 @@ class PocketsDB:
         con = sqlite3.connect(self.db_name)
         cur = con.cursor()
         cur.execute(
-            "INSERT INTO Credit2OutAction VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO Credit2OutAction VALUES (NULL, ?, ?, ?, ?, ?, ?)",
             (action_name, pocket_name, credit_name,
-             summ, addit_summ, percent_sum, comment)
+             summ, addit_summ, comment)
         )
         lid = cur.lastrowid
         con.commit()
@@ -768,7 +767,7 @@ class PocketsDB:
                         Credit2OutAction.Comment                      AS Value4,
                         cast(Credits.Contact as text)                 AS Value5,
                         cast(Credit2OutAction.AdditionalSumm as text) AS Value6,
-                        cast(Credit2OutAction.PercentSumm    as text) AS Value7
+                        '-' AS Value7
                     FROM Credit2OutAction as Credit2OutAction
                         LEFT JOIN Credits as Credits ON Credits.Name = Credit2OutAction.Credit
 
@@ -1177,3 +1176,16 @@ class ODataRequests:
                 self.post_action_in(d)
             if d[0] == 2:
                 self.post_action_out(d)
+            if d[0] == 3:
+                self.post_action_between(d)
+            if d[0] == 4:
+                self.post_action_exchange(d)
+            if d[0] == 5:
+                self.post_action_credit1_in(d)
+            if d[0] == 6:
+                self.post_action_credit1_out(d)
+            if d[0] == 7:
+                self.post_action_credit2_in(d)
+            if d[0] == 8:
+                self.post_action_credit2_out(d)
+        return True
