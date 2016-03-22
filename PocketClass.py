@@ -773,7 +773,7 @@ class Pockets:
                      'sum_rub': float(d[4]) * currency.coeff(),
                      'course': currency.course,
                      'multiplicity': currency.multiplicity
-                    }
+                     }
                 )
             if d[0] == 2:
                 pocket = self.get_one(d[2], self.simple_objects['OnePocket'])
@@ -794,7 +794,7 @@ class Pockets:
                      'sum': float(d[4]),
                      'amount': amount,
                      'line_comment': d[6]
-                    }
+                     }
                 )
             if d[0] == 3:
                 pocket_out = self.get_one(d[2], self.simple_objects['OnePocket'])
@@ -809,7 +809,7 @@ class Pockets:
                      'currency_key': currency.kwargs['Ref_Key'],
                      'sum': float(d[4]),
                      'line_comment': d[5]
-                    }
+                     }
                 )
             if d[0] == 4:
                 pocket_out = self.get_one(d[2], self.simple_objects['OnePocket'])
@@ -828,7 +828,7 @@ class Pockets:
                      'sum_out': float(d[4]),
                      'sum_in': float(d[5]),
                      'line_comment': d[6]
-                    }
+                     }
                 )
             if d[0] == 5:
                 pocket = self.get_one(d[2], self.simple_objects['OnePocket'])
@@ -846,7 +846,7 @@ class Pockets:
                      'sum': float(d[4]),
                      'line_comment': d[5],
                      'addit_sum': float(d[7])
-                    }
+                     }
                 )
             if d[0] == 6:
                 pocket = self.get_one(d[2], self.simple_objects['OnePocket'])
@@ -871,7 +871,7 @@ class Pockets:
                      'multiplicity': currency.multiplicity,
                      'percent_item_key': item.kwargs['Ref_Key'],
                      'total_sum': float(d[4]) + float(d[7]) + float(d[8])
-                    }
+                     }
                 )
             if d[0] == 7:
                 pocket = self.get_one(d[2], self.simple_objects['OnePocket'])
@@ -893,9 +893,31 @@ class Pockets:
                      'item_key': item.kwargs['Ref_Key'],
                      'additional_sum': float(d[7]),
                      'percent_sum': float(d[8])
-                    }
+                     }
                 )
-            # todo next
+            if d[0] == 8:
+                pocket = self.get_one(d[2], self.simple_objects['OnePocket'])
+                credit = self.get_one(d[3], self.simple_objects['OneCredit'])
+                currency = self.get_one(unicode(pocket.currency),
+                                        self.simple_objects['OneCurrency'])
+                contact = self.get_one(d[6], self.simple_objects['OneContact'])
+                item = self.get_one(u'Прочие доходы',
+                                    self.simple_objects['OneInItem'])
+                ret_value.append(
+                    {'action': 8,
+                     'Date': date,
+                     'contact_key': ,
+                     'credit_key': ,
+                     'pocket_key': ,
+                     'currency_key': ,
+                     'sum': ,
+                     'currency_key': ,
+                     'sum': ,
+                     'comment': ,
+                     'additional_sum': ,
+                     'total_sum': 
+                     }
+                )
 
     def post_data(self):
         if (hasattr(self, 'settings') and

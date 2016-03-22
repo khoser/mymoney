@@ -1136,12 +1136,37 @@ class ODataRequests:
             u"СуммаПолучено": data['sum'],
             u"СуммаПроцентов": data['percent_sum'],
             u"СуммаПроцентовВВалютеДолга": data['percent_sum'],
-            u"СуммаСписания": 0,
+            u"СуммаСписания": 0
         }
         web_doc = self.post(url, json.dumps(value))
         dict_doc = json.loads(web_doc)
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
                self.fix_set['doc_credit2_in'] + self.guid(dict_doc['Ref_Key']) +
+               self.fix_set['post'])
+        self.get(url)
+        return dict_doc
+
+    def post_action_credit2_out(self, data):
+        url = (self.settings['URL'] + self.fix_set['odata_url'] +
+               self.fix_set['doc_credit2_out'] + self.fix_set['json_format'])
+        value = {
+            u"Date": data['date'],
+            u"Контакт_Key": data['contact_key'],
+            u"Долг_Key": data['credit_key'],
+            u"Кошелек_Key": data['pocket_key'],
+            # u"ФинансоваяЦель_Key": "44747ae3-5dd5-11e3-95ac-005056c00008",
+            u"ВалютаВыдано_Key": data['currency_key'],
+            u"СуммаВыдано": data['sum'],
+            u"ВалютаЗайма_Key": data['currency_key'],
+            u"СуммаЗайма": data['sum'],
+            u"Комментарий": data['comment'],
+            u"СуммаДополнительныхРасходов": data['additional_sum'],
+            u"ВсегоРасход": data['total_sum']
+        }
+        web_doc = self.post(url, json.dumps(value))
+        dict_doc = json.loads(web_doc)
+        url = (self.settings['URL'] + self.fix_set['odata_url'] +
+               self.fix_set['doc_credit2_out'] + self.guid(dict_doc['Ref_Key']) +
                self.fix_set['post'])
         self.get(url)
         return dict_doc
