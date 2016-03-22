@@ -60,6 +60,15 @@ def convert_type_to_str(value):
         return unicode(value)
 
 
+def guid(dct):
+    g_id = ''
+    if hasattr(dct, 'kwargs') and 'Ref_Key' in dct.kwargs:
+        g_id = dct.kwargs['Ref_Key']
+    elif type(dct) == dict and 'Ref_Key' in dct:
+        g_id = dct['Ref_Key']
+    return u"(guid'%s')" % g_id
+
+
 class PocketsDB:
 
     def __init__(self, db_name='MyMoney.db'):
@@ -789,7 +798,6 @@ class PocketsDB:
 # передача и получение данных посредством веб-сервиса
 
 class ODataRequests:
-    # ToDo: Переписать SOAP в OData
 
     def __init__(self, settings):
         self.__name__ = 'ODataRequests'
@@ -943,9 +951,6 @@ class ODataRequests:
         if 'Courses' in callback_funcs:
             callback_funcs['Courses'](self.get_courses())
 
-    def guid(self, guid):
-        return u"(guid'%s')" % guid
-
     def post_action_in(self, data):
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
                self.fix_set['doc_in'] + self.fix_set['json_format'])
@@ -970,7 +975,7 @@ class ODataRequests:
         web_doc = self.post(url, json.dumps(value))
         dict_doc = json.loads(web_doc)
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
-               self.fix_set['doc_in'] + self.guid(dict_doc['Ref_Key']) +
+               self.fix_set['doc_in'] + guid(dict_doc) +
                self.fix_set['post'])
         self.get(url)
         return dict_doc
@@ -999,7 +1004,7 @@ class ODataRequests:
         web_doc = self.post(url, json.dumps(value))
         dict_doc = json.loads(web_doc)
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
-               self.fix_set['doc_out'] + self.guid(dict_doc['Ref_Key']) +
+               self.fix_set['doc_out'] + guid(dict_doc) +
                self.fix_set['post'])
         self.get(url)
         return dict_doc
@@ -1022,7 +1027,7 @@ class ODataRequests:
         web_doc = self.post(url, json.dumps(value))
         dict_doc = json.loads(web_doc)
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
-               self.fix_set['doc_between'] + self.guid(dict_doc['Ref_Key']) +
+               self.fix_set['doc_between'] + guid(dict_doc) +
                self.fix_set['post'])
         self.get(url)
         return dict_doc
@@ -1049,7 +1054,7 @@ class ODataRequests:
         web_doc = self.post(url, json.dumps(value))
         dict_doc = json.loads(web_doc)
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
-               self.fix_set['doc_exchange'] + self.guid(dict_doc['Ref_Key']) +
+               self.fix_set['doc_exchange'] + guid(dict_doc) +
                self.fix_set['post'])
         self.get(url)
         return dict_doc
@@ -1076,7 +1081,7 @@ class ODataRequests:
         web_doc = self.post(url, json.dumps(value))
         dict_doc = json.loads(web_doc)
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
-               self.fix_set['doc_credit1_in'] + self.guid(dict_doc['Ref_Key']) +
+               self.fix_set['doc_credit1_in'] + guid(dict_doc) +
                self.fix_set['post'])
         self.get(url)
         return dict_doc
@@ -1112,7 +1117,7 @@ class ODataRequests:
         web_doc = self.post(url, json.dumps(value))
         dict_doc = json.loads(web_doc)
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
-               self.fix_set['doc_credit1_out'] + self.guid(dict_doc['Ref_Key']) +
+               self.fix_set['doc_credit1_out'] + guid(dict_doc) +
                self.fix_set['post'])
         self.get(url)
         return dict_doc
@@ -1140,7 +1145,7 @@ class ODataRequests:
         web_doc = self.post(url, json.dumps(value))
         dict_doc = json.loads(web_doc)
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
-               self.fix_set['doc_credit2_in'] + self.guid(dict_doc['Ref_Key']) +
+               self.fix_set['doc_credit2_in'] + guid(dict_doc) +
                self.fix_set['post'])
         self.get(url)
         return dict_doc
@@ -1165,10 +1170,24 @@ class ODataRequests:
         web_doc = self.post(url, json.dumps(value))
         dict_doc = json.loads(web_doc)
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
-               self.fix_set['doc_credit2_out'] + self.guid(dict_doc['Ref_Key']) +
+               self.fix_set['doc_credit2_out'] + guid(dict_doc) +
                self.fix_set['post'])
         self.get(url)
         return dict_doc
+
+    def post_new_contact(self, contact_name):
+        url = (self.settings['URL'] + self.fix_set['odata_url'] +
+               self.fix_set['ref_contacts'] + self.fix_set['json_format'])
+        value = {
+            "IsFolder": False,
+            "Description": contact_name,
+            u"Активность": True,
+        }
+        web_ref = self.post(url, json.dumps(value))
+        dict_ref = json.loads(web_ref)
+        return dict_ref
+
+    # todo: создание новых статей, кредитов, кошельков.
 
     def post_docs(self, data):
         for d in data:

@@ -113,6 +113,11 @@ class TestAll(unittest.TestCase):
         pdb.action_credit2_in(*act_data[5])
         pdb.action_credit1_out(*act_data[6])
         pdb.action_credit2_out(*act_data[7])
+        # data = pdb.prepare_send_data()
+        # for t in data:
+        #     for k in t:
+        #         print k,
+        #     print ' '
         pdb._drops()
         for i in range(8):
             cur.execute("SELECT * FROM %s" % tbl_names[i])

@@ -756,7 +756,7 @@ class Pockets:
         data_dict.sort()
         ret_value = []
         for d in data_dict:
-            date = d[1]  # '2016-03-17T22:22:22' todo
+            date = d[1].replace(' ', 'T')  # '2016-03-17T22:22:22'
             if d[0] == 1:
                 pocket = self.get_one(d[2], self.simple_objects['OnePocket'])
                 item = self.get_one(d[3], self.simple_objects['OneInItem'])
@@ -904,7 +904,7 @@ class Pockets:
                 ret_value.append(
                     {'action': 8,
                      'Date': date,
-                     'contact_key': contact.kwargs['Ref_Key'],
+                     'contact_key': PocketDB.guid(contact),
                      'credit_key': credit.kwargs['Ref_Key'],
                      'pocket_key': pocket.kwargs['Ref_Key'],
                      'currency_key': currency.kwargs['Ref_Key'],
