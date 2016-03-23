@@ -62,9 +62,7 @@ def convert_type_to_str(value):
 
 def guid(dct):
     g_id = ''
-    if hasattr(dct, 'kwargs') and 'Ref_Key' in dct.kwargs:
-        g_id = dct.kwargs['Ref_Key']
-    elif type(dct) == dict and 'Ref_Key' in dct:
+    if type(dct) == dict and 'Ref_Key' in dct:
         g_id = dct['Ref_Key']
     return u"(guid'%s')" % g_id
 

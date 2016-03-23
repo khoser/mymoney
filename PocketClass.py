@@ -904,7 +904,7 @@ class Pockets:
                 ret_value.append(
                     {'action': 8,
                      'Date': date,
-                     'contact_key': PocketDB.guid(contact),
+                     'contact_key': contact.kwargs['Ref_Key'],
                      'credit_key': credit.kwargs['Ref_Key'],
                      'pocket_key': pocket.kwargs['Ref_Key'],
                      'currency_key': currency.kwargs['Ref_Key'],
