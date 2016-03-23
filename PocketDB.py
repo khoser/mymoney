@@ -4,8 +4,6 @@
 Классы, описывающие работу с базой данных и с соап-сервисом
 """
 import sqlite3
-import base64
-from multiprocessing import Pool
 import os
 import string
 import urllib2
