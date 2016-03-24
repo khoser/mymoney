@@ -97,7 +97,9 @@ class PocketsDB:
         con = sqlite3.connect(self.db_name)
         cur = con.cursor()
         try:
-            cur.execute("CREATE TABLE First_Table(Id INTEGER)")
+            cur.execute("""CREATE TABLE First_Table(
+                                    Id INTEGER PRIMARY KEY AUTOINCREMENT)
+                                    """)
         except sqlite3.OperationalError:
             pass
         finally:
@@ -218,37 +220,45 @@ class PocketsDB:
         cur.executescript("""
 --кошельки
             DROP TABLE IF EXISTS Pockets;
-            CREATE TABLE Pockets(Name VARCHAR(50), Currency VARCHAR(10));
+            CREATE TABLE Pockets(Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                 Name VARCHAR(50), Currency VARCHAR(10));
 --остатки
             DROP TABLE IF EXISTS Balances;
-            CREATE TABLE Balances(Pocket VARCHAR(50), Balance FLOAT);
+            CREATE TABLE Balances(Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                  Pocket VARCHAR(50), Balance FLOAT);
 --остатки по долгам
             DROP TABLE IF EXISTS CreditBalances;
-            CREATE TABLE CreditBalances(Credit VARCHAR(50),
-                                       Balance FLOAT);
+            CREATE TABLE CreditBalances(Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                        Credit VARCHAR(50), Balance FLOAT);
 --статьи расходов
             DROP TABLE IF EXISTS OutItems;
-            CREATE TABLE OutItems(Item VARCHAR(50));
+            CREATE TABLE OutItems(Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                  Item VARCHAR(50));
 --статьи доходов
             DROP TABLE IF EXISTS InItems;
-            CREATE TABLE InItems(Item VARCHAR(50));
+            CREATE TABLE InItems(Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                 Item VARCHAR(50));
 --контакты
             DROP TABLE IF EXISTS Contacts;
-            CREATE TABLE Contacts(Name VARCHAR(50));
+            CREATE TABLE Contacts(Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                  Name VARCHAR(50));
 --кредиты
             DROP TABLE IF EXISTS Credits;
-            CREATE TABLE Credits(Name VARCHAR(50),
+            CREATE TABLE Credits(Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                 Name VARCHAR(50),
                                  Contact VARCHAR(50),
                                  Currency VARCHAR(10));
 --валюты
             DROP TABLE IF EXISTS Currency;
-            CREATE TABLE Currency(Name VARCHAR(50),
+            CREATE TABLE Currency(Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                  Name VARCHAR(50),
                                   Course FLOAT,
                                   Multiplicity VARCHAR(10));
 
 --дополнительные параметры
             DROP TABLE IF EXISTS KWArgs;
-            CREATE TABLE KWArgs(ObjName VARCHAR(50),
+            CREATE TABLE KWArgs(Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                ObjName VARCHAR(50),
                                 ObjType VARCHAR(50),
                                 DataName VARCHAR(50),
                                 DataType VARCHAR(50),
@@ -258,31 +268,31 @@ class PocketsDB:
         if pcs is not None:
             for pocket in pcs.pockets:
                 cur.execute(
-                                "INSERT INTO Pockets VALUES (?, ?)",
+                                "INSERT INTO Pockets VALUES (NULL, ?, ?)",
                                 (
                                     pocket.name,
                                     pocket.currency
                                 )
                             )
                 cur.execute(
-                                "INSERT INTO Balances VALUES (?, ?)",
+                                "INSERT INTO Balances VALUES (NULL, ?, ?)",
                                 (
                                     pocket.name,
                                     pocket.balance
                                 )
                             )
             for x in pcs.out_items:
-                cur.execute("INSERT INTO OutItems VALUES (?)", (x.name,))
+                cur.execute("INSERT INTO OutItems VALUES (NULL, ?)", (x.name,))
             for x in pcs.in_items:
-                cur.execute("INSERT INTO InItems VALUES (?)", (x.name,))
+                cur.execute("INSERT INTO InItems VALUES (NULL, ?)", (x.name,))
             for x in pcs.contacts:
-                cur.execute("INSERT INTO Contacts VALUES (?)", (x.name,))
+                cur.execute("INSERT INTO Contacts VALUES (NULL, ?)", (x.name,))
             for x in pcs.currency:
-                cur.execute("INSERT INTO Currency VALUES (?, ?, ?)",
+                cur.execute("INSERT INTO Currency VALUES (NULL, ?, ?, ?)",
                             (x.name, x.course, x.multiplicity))
             for credit in pcs.credits:
                 cur.execute(
-                                "INSERT INTO Credits VALUES (?, ?, ?)",
+                                "INSERT INTO Credits VALUES (NULL, ?, ?, ?)",
                                 (
                                     credit.name,
                                     credit.contact,
@@ -290,12 +300,12 @@ class PocketsDB:
                                 )
                             )
                 cur.execute(
-                                "INSERT INTO CreditBalances VALUES (?, ?)",
-                                (
-                                    credit.name,
-                                    credit.balance
-                                )
-                            )
+                    "INSERT INTO CreditBalances VALUES (NULL, ?, ?)",
+                    (
+                        credit.name,
+                        credit.balance
+                    )
+                )
             con.commit()
             for credit in pcs.credits:
                 self.dump_kwargs(credit)
@@ -307,6 +317,8 @@ class PocketsDB:
                 self.dump_kwargs(item)
             for contact in pcs.contacts:
                 self.dump_kwargs(contact)
+            for currency in pcs.currency:
+                self.dump_kwargs(currency)
 
         con.close()
 
@@ -318,7 +330,7 @@ class PocketsDB:
         except sqlite3.OperationalError:
             return -1
         for row in cur:
-            return_value = [row[i] for i in range(1, 3)]
+            return_value = [row[i] for i in range(2, 4)]
         con.close()
         return return_value
 
@@ -328,11 +340,12 @@ class PocketsDB:
         cur.executescript("""
             DROP
                 TABLE IF EXISTS Settings;
-            CREATE TABLE Settings(OwnerName VARCHAR(50),
+            CREATE TABLE Settings(Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                  OwnerName VARCHAR(50),
                                   Url_wsdl VARCHAR(300),
                                   Authorization VARCHAR(100));
                                   """)
-        cur.execute("INSERT INTO Settings VALUES (?, ?, ?)",
+        cur.execute("INSERT INTO Settings VALUES (NULL, ?, ?, ?)",
                          (1, url_wsdl, authorization))
         con.commit()
         con.close()
@@ -536,7 +549,7 @@ class PocketsDB:
         con = sqlite3.connect(self.db_name)
         cur = con.cursor()
         cur.execute("SELECT * FROM InItems")
-        return_value = [row[0] for row in cur]
+        return_value = [row[1] for row in cur]
         con.close()
         return return_value
 
@@ -544,7 +557,7 @@ class PocketsDB:
         con = sqlite3.connect(self.db_name)
         cur = con.cursor()
         cur.execute("SELECT * FROM OutItems")
-        return_value = [row[0] for row in cur]
+        return_value = [row[1] for row in cur]
         con.close()
         return return_value
 
@@ -552,7 +565,7 @@ class PocketsDB:
         con = sqlite3.connect(self.db_name)
         cur = con.cursor()
         cur.execute("SELECT * FROM Currency")
-        return_value = [[row[0], row[1], row[2]] for row in cur]
+        return_value = [[row[1], row[2], row[3]] for row in cur]
         con.close()
         return return_value
 
@@ -560,7 +573,7 @@ class PocketsDB:
         con = sqlite3.connect(self.db_name)
         cur = con.cursor()
         cur.execute("SELECT * FROM Contacts")
-        return_value = [row[0] for row in cur]
+        return_value = [row[1] for row in cur]
         con.close()
         return return_value
 
@@ -593,8 +606,8 @@ class PocketsDB:
         if kw is None or obj_type is None:
             raise Exception('kwargs or object type is None')
         obj_name = unicode(obj)
-        if hasattr(obj, 'name'):
-            obj_name = obj.name
+        # if hasattr(obj, 'name'):
+        #     obj_name = obj.name
         con = sqlite3.connect(self.db_name)
         cur = con.cursor()
         for k in kw:
@@ -604,7 +617,7 @@ class PocketsDB:
                        WHERE ObjName = ? AND ObjType = ? AND DataName = ?""",
                     (obj_name, obj_type, k)
                 )
-                cur.execute("INSERT INTO KWArgs VALUES (?, ?, ?, ?, ?)",
+                cur.execute("INSERT INTO KWArgs VALUES (NULL, ?, ?, ?, ?, ?)",
                             (obj_name, obj_type, k, get_type(kw[k]),
                              convert_type_to_str(kw[k]))
                             )
@@ -615,12 +628,12 @@ class PocketsDB:
 
     def get_kwargs(self, obj, obj_type=None):
         if hasattr(obj,'__name__'):
-            obj_type = obj.__name__
+            obj_type = unicode(obj.__name__)
         if obj_type is None:
             raise Exception('Object type is None')
         obj_name = unicode(obj)
-        if hasattr(obj,'name'):
-            obj_name = obj.name
+        # if hasattr(obj,'name'):
+        #     obj_name = obj.name
         return_value = {}
         con = sqlite3.connect(self.db_name)
         cur = con.cursor()
@@ -631,7 +644,7 @@ class PocketsDB:
         except sqlite3.OperationalError:
             raise Exception('KWArgs table is wrong')
         for row in cur:
-            return_value[row[2]] = convert_to_type(row[4], row[3])
+            return_value[row[3]] = convert_to_type(row[5], row[4])
         con.close()
         # print obj_name, obj_type, return_value
         return return_value
@@ -1187,20 +1200,20 @@ class ODataRequests:
 
     def post_docs(self, data):
         for d in data:
-            if d[0] == 1:
+            if d['action'] == 1:
                 self.post_action_in(d)
-            if d[0] == 2:
+            if d['action'] == 2:
                 self.post_action_out(d)
-            if d[0] == 3:
+            if d['action'] == 3:
                 self.post_action_between(d)
-            if d[0] == 4:
+            if d['action'] == 4:
                 self.post_action_exchange(d)
-            if d[0] == 5:
+            if d['action'] == 5:
                 self.post_action_credit1_in(d)
-            if d[0] == 6:
+            if d['action'] == 6:
                 self.post_action_credit1_out(d)
-            if d[0] == 7:
+            if d['action'] == 7:
                 self.post_action_credit2_in(d)
-            if d[0] == 8:
+            if d['action'] == 8:
                 self.post_action_credit2_out(d)
         return True

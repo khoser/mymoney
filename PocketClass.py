@@ -163,8 +163,12 @@ class Pockets:
             if name == x.name:
                 exist = True
                 x.set_course(course, multiplicity)
+                for i in kwargs:
+                    x.kwargs[i] = kwargs[i]
+                break
         if not exist:
-            self.currency.append(OneCurrency(name, course, multiplicity, **kwargs))
+            self.currency.append(
+                OneCurrency(name, course, multiplicity, **kwargs))
 
     def set_pocket(self, name, currency, balance=0, **kwargs):
         # добавление еще одного кошелька в список
@@ -174,6 +178,9 @@ class Pockets:
             if name == x.name:
                 exist = True
                 x.set_balance(balance)
+                for i in kwargs:
+                    x.kwargs[i] = kwargs[i]
+                break
         if not exist:
             self.pockets.append(OnePocket(name, currency, balance, **kwargs))
 
@@ -197,25 +204,52 @@ class Pockets:
             if (name == x.name) & (contact == x.contact):
                 exist = True
                 x.set_balance(balance)
+                for i in kwargs:
+                    x.kwargs[i] = kwargs[i]
+                break
         if not exist:
             self.credits.append(
                 OneCredit(name, currency, contact, balance, **kwargs)
             )
 
     def set_out_item(self, name, **kwargs):
-        so = SimpleObject(name, **kwargs)
-        so.__name__ = self.simple_objects['OneOutItem']
-        self.out_items.append(so)
+        exist = False
+        for x in self.out_items:
+            if name == x.name:
+                exist = True
+                for i in kwargs:
+                    x.kwargs[i] = kwargs[i]
+                break
+        if not exist:
+            so = SimpleObject(name, **kwargs)
+            so.__name__ = self.simple_objects['OneOutItem']
+            self.out_items.append(so)
 
     def set_in_item(self, name, **kwargs):
-        so = SimpleObject(name, **kwargs)
-        so.__name__ = self.simple_objects['OneInItem']
-        self.in_items.append(so)
+        exist = False
+        for x in self.in_items:
+            if name == x.name:
+                exist = True
+                for i in kwargs:
+                    x.kwargs[i] = kwargs[i]
+                break
+        if not exist:
+            so = SimpleObject(name, **kwargs)
+            so.__name__ = self.simple_objects['OneInItem']
+            self.in_items.append(so)
 
     def set_contact(self, name, **kwargs):
-        so = SimpleObject(name, **kwargs)
-        so.__name__ = self.simple_objects['OneContact']
-        self.contacts.append(so)
+        exist = False
+        for x in self.contacts:
+            if name == x.name:
+                exist = True
+                for i in kwargs:
+                    x.kwargs[i] = kwargs[i]
+                break
+        if not exist:
+            so = SimpleObject(name, **kwargs)
+            so.__name__ = self.simple_objects['OneContact']
+            self.contacts.append(so)
 
     def set_simple(self, name, simple_type, **kwargs):
         if simple_type == self.simple_objects['OneOutItem']:
@@ -362,19 +396,19 @@ class Pockets:
         for data in self.db.get_items_in():
             self.set_in_item(
                 data,
-                **self.db.get_kwargs(data[0], self.simple_objects['OneInItem'])
+                **self.db.get_kwargs(data, self.simple_objects['OneInItem'])
             )
         # статьи расходов:
         for data in self.db.get_items_out():
             self.set_out_item(
                 data,
-                **self.db.get_kwargs(data[0], self.simple_objects['OneOutItem'])
+                **self.db.get_kwargs(data, self.simple_objects['OneOutItem'])
             )
         # контакты:
         for data in self.db.get_contacts():
             self.set_contact(
                 data,
-                **self.db.get_kwargs(data[0], self.simple_objects['OneContact'])
+                **self.db.get_kwargs(data, self.simple_objects['OneContact'])
             )
         # кредиты:
         for data in self.db.get_credits():
@@ -914,6 +948,7 @@ class Pockets:
                      'total_sum': float(d[4]) + float(d[7])
                      }
                 )
+        return ret_value
 
     def post_data(self):
         if (hasattr(self, 'settings') and
@@ -921,8 +956,7 @@ class Pockets:
                 len(self.settings["Authorization"]) > 0):
             self.get_settings()
             sr = PocketDB.ODataRequests(self.settings)
-            data_dict = self.db.prepare_send_data()
-            data_dict.sort()
+            data_dict = self.reformat_data()
             if sr.post_docs(data_dict):
                 self.db.recreate_docs()
 

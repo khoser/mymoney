@@ -59,7 +59,9 @@ class MyFace(StackLayout):
         self.money_label.text = '[b][color=008000]%s[/color][/b]' % value
 
     def show_money(self, pocket_name):
-        self.money_label_text = str(self.pcs.get_one(pocket_name).balance)
+        self.money_label_text = unicode(self.pcs.get_one(
+            pocket_name, self.pcs.simple_objects['OnePocket']
+        ).balance)
 
     def prepare_action(self, action_name, *args, **kwargs):
         if self.previous_action_name == 'In':
@@ -98,10 +100,11 @@ class MyFace(StackLayout):
             pass
         if action_name == 'In':
             self.pocket = DrpDwnList('Кошелек:',
-                                     [i.name for i in self.pcs.pockets],
+                                     [unicode(i) for i in self.pcs.pockets],
                                      self.show_money)
             self.add_widget(self.pocket)
-            self.item_in = DrpDwnList('Статья:', self.pcs.in_items)
+            self.item_in = DrpDwnList('Статья:',
+                                      [unicode(i) for i in self.pcs.in_items])
             self.add_widget(self.item_in)
             self.summ = InptData('Сумма:')
             self.add_widget(self.summ)
@@ -112,10 +115,11 @@ class MyFace(StackLayout):
             self.add_widget(self.btn)
         elif action_name == 'Out':
             self.pocket = DrpDwnList('Кошелек:',
-                                     [i.name for i in self.pcs.pockets],
+                                     [unicode(i) for i in self.pcs.pockets],
                                      self.show_money)
             self.add_widget(self.pocket)
-            self.item_out = DrpDwnList('Статья:', self.pcs.out_items)
+            self.item_out = DrpDwnList('Статья:',
+                                       [unicode(i) for i in self.pcs.out_items])
             self.add_widget(self.item_out)
             self.summ = InptData('Сумма:')
             self.add_widget(self.summ)
@@ -128,11 +132,11 @@ class MyFace(StackLayout):
             self.add_widget(self.btn)
         elif action_name == 'Between':
             self.pocket = DrpDwnList('Из кошелька:',
-                                     [i.name for i in self.pcs.pockets],
+                                     [unicode(i) for i in self.pcs.pockets],
                                      self.show_money)
             self.add_widget(self.pocket)
             self.to_pocket = DrpDwnList('В кошелек:',
-                                     [i.name for i in self.pcs.pockets],
+                                     [unicode(i) for i in self.pcs.pockets],
                                      self.show_money)
             self.add_widget(self.to_pocket)
             self.summ = InptData('Сумма:')
@@ -144,11 +148,11 @@ class MyFace(StackLayout):
             self.add_widget(self.btn)
         elif action_name == 'Exchange':
             self.pocket = DrpDwnList('Из кошелька:',
-                                     [i.name for i in self.pcs.pockets],
+                                     [unicode(i) for i in self.pcs.pockets],
                                      self.show_money)
             self.add_widget(self.pocket)
             self.to_pocket = DrpDwnList('В кошелек:',
-                                     [i.name for i in self.pcs.pockets],
+                                     [unicode(i) for i in self.pcs.pockets],
                                      self.show_money)
             self.add_widget(self.to_pocket)
             self.summ_out = InptData('Сумма потрачено:')
@@ -175,18 +179,28 @@ class MyFace(StackLayout):
         pass
 
     def do_action_in(self, *args):
-        self.pcs.action_in(self.pcs.get_one(self.pocket.spinner.text),
-                           self.item_in.spinner.text,
-                           float(self.summ.text_input.text),
-                           0,
-                           self.comment.text_input.text)
+        if self.summ.text_input.text == '':
+            return
+        self.pcs.action_in(
+            self.pcs.get_one(self.pocket.spinner.text,
+                             self.pcs.simple_objects['OnePocket']),
+            self.item_in.spinner.text,
+            float(self.summ.text_input.text),
+            0,
+            self.comment.text_input.text)
 
     def do_action_out(self, *args):
-        self.pcs.action_out(self.pcs.get_one(self.pocket.spinner.text),
-                            self.item_out.spinner.text,
-                            float(self.summ.text_input.text),
-                            float(self.amount.text_input.text),
-                            self.comment.text_input.text)
+        if self.summ.text_input.text == '':
+            return
+        if self.amount.text_input.text == '':
+            self.amount.text_input.text = '0'
+        self.pcs.action_out(
+            self.pcs.get_one(self.pocket.spinner.text,
+                             self.pcs.simple_objects['OnePocket']),
+            self.item_out.spinner.text,
+            float(self.summ.text_input.text),
+            float(self.amount.text_input.text),
+            self.comment.text_input.text)
 
     def do_action_between(self, *args):
         self.pcs.action_between(self.pcs.get_one(self.pocket.spinner.text),
@@ -265,8 +279,8 @@ class AuthorizationPopUp(BoxLayout):
                               self.text_input3.text)
         self.popup.popup.dismiss()
 
+
 class BackPanel(BoxLayout):
-    kostyl = NumericProperty(1)
 
     def __init__(self, pcs, navi_drawer, **kwargs):
         self.pcs = pcs
@@ -277,7 +291,7 @@ class BackPanel(BoxLayout):
                            content=AuthorizationPopUp(self.pcs, self),
                            size_hint=(0.7, 0.7))
         button1 = Button(
-            text='Первичка', size_hint=(1, None),
+            text='Учет', size_hint=(1, None),
             #height=50,
             #on_press=partial(self.some_action)
         )

@@ -272,7 +272,7 @@ class TestAll(unittest.TestCase):
         except sqlite3.OperationalError:
             raise Exception('KWArgs table is wrong')
         for row in cur:
-            return_value.append([row[0], row[1], row[2], row[3], row[4]])
+            return_value.append([row[1], row[2], row[3], row[4], row[5]])
         con.close()
         return_value.sort()
         model = []
