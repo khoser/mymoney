@@ -162,7 +162,7 @@ class Pockets:
         for x in self.currency:
             if name == x.name:
                 exist = True
-                x.set_course()
+                x.set_course(course, multiplicity)
         if not exist:
             self.currency.append(OneCurrency(name, course, multiplicity, **kwargs))
 

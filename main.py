@@ -268,8 +268,9 @@ class AuthorizationPopUp(BoxLayout):
 class BackPanel(BoxLayout):
     kostyl = NumericProperty(1)
 
-    def __init__(self, pcs,  **kwargs):
+    def __init__(self, pcs, navi_drawer, **kwargs):
         self.pcs = pcs
+        self.navi_drawer = navi_drawer
         self.orientation = 'vertical'
         super(BackPanel, self).__init__(**kwargs)
         self.popup = Popup(title='Настройки',
@@ -307,14 +308,18 @@ class BackPanel(BoxLayout):
         self.add_widget(button5)
 
     def do_synchronization(self, *args):
-        self.pcs.soap_data()
+        # todo можно попробовать тут разбить на потоки, а можно внутри этих
+        # процедур:
+        self.pcs.post_data()
+        self.pcs.get_data()
+        self.navi_drawer.anim_to_state('closed')
 
 
 class MyMoney(App):
     def build(self):
         pcs = PocketClass.Pockets('MyPythonMoney.db')
         navi_drawer = NavigationDrawer()
-        back_panel = BackPanel(pcs)
+        back_panel = BackPanel(pcs, navi_drawer)
         scroll_view = ScrollView(size_hint=(1, 1),
                                  #size=(720, 1280),
                                  do_scroll_x=False, do_scroll_y=True)
@@ -325,8 +330,8 @@ class MyMoney(App):
         return navi_drawer
 
     def on_stop(self):
-        pass
         # self.face.pcs.close_db()
+        pass
 
 if __name__ == '__main__':
     Builder.load_file('main.kv')
