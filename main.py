@@ -174,6 +174,41 @@ class MyFace(StackLayout):
             pass
         self.previous_action_name = action_name
 
+    def clear_inputs(self):
+        if self.action_name == 'In':
+            # self.pocket
+            # self.item_in
+            self.summ.text_input.text = ''
+            self.comment.text_input.text = ''
+            # self.btn
+        elif self.action_name == 'Out':
+            # self.pocket
+            # self.item_out
+            self.summ.text_input.text = ''
+            self.amount.text_input.text = ''
+            self.comment.text_input.text = ''
+            # self.btn
+        elif self.action_name == 'Between':
+            # self.pocket
+            # self.to_pocket
+            self.summ.text_input.text = ''
+            self.comment.text_input.text = ''
+            # self.btn
+        elif self.action_name == 'Exchange':
+            # self.pocket
+            # self.to_pocket
+            self.summ_out.text_input.text = ''
+            self.summ_in.text_input.text = ''
+            self.comment.text_input.text = ''
+            # self.btn
+        elif self.action_name == 'Credit1In':
+            pass
+        elif self.action_name == 'Credit1Out':
+            pass
+        elif self.action_name == 'Credit2In':
+            pass
+        elif self.action_name == 'Credit2Out':
+            pass
 
     def some_action(self, x):
         pass
@@ -188,6 +223,8 @@ class MyFace(StackLayout):
             float(self.summ.text_input.text),
             0,
             self.comment.text_input.text)
+        self.show_money(self.pocket.spinner.text)
+        self.clear_inputs()
 
     def do_action_out(self, *args):
         if self.summ.text_input.text == '':
@@ -201,19 +238,29 @@ class MyFace(StackLayout):
             float(self.summ.text_input.text),
             float(self.amount.text_input.text),
             self.comment.text_input.text)
+        self.show_money(self.pocket.spinner.text)
+        self.clear_inputs()
 
     def do_action_between(self, *args):
-        self.pcs.action_between(self.pcs.get_one(self.pocket.spinner.text),
-                                self.pcs.get_one(self.to_pocket.spinner.text),
-                                float(self.summ.text_input.text),
-                                self.comment.text_input.text)
+        self.pcs.action_between(
+            self.pcs.get_one(self.pocket.spinner.text,
+                             self.pcs.simple_objects['OnePocket']),
+            self.pcs.get_one(self.to_pocket.spinner.text,
+                             self.pcs.simple_objects['OnePocket']),
+            float(self.summ.text_input.text), self.comment.text_input.text)
+        self.show_money(self.pocket.spinner.text)
+        self.clear_inputs()
 
     def do_action_exchange(self, *args):
-        self.pcs.action_exchange(self.pcs.get_one(self.pocket.spinner.text),
-                                 self.pcs.get_one(self.to_pocket.spinner.text),
-                                 float(self.summ_out.text_input.text),
-                                 float(self.summ_in.text_input.text),
-                                 self.comment.text_input.text)
+        self.pcs.action_exchange(
+            self.pcs.get_one(self.pocket.spinner.text,
+                             self.pcs.simple_objects['OnePocket']),
+            self.pcs.get_one(self.to_pocket.spinner.text,
+                             self.pcs.simple_objects['OnePocket']),
+            float(self.summ_out.text_input.text),
+            float(self.summ_in.text_input.text), self.comment.text_input.text)
+        self.show_money(self.pocket.spinner.text)
+        self.clear_inputs()
 
 
 class DrpDwnList(BoxLayout):
@@ -304,7 +351,7 @@ class BackPanel(BoxLayout):
             text='Настройки', size_hint=(1, None),
             #height=50,
         )
-        button3.bind(on_release=self.popup.open)
+        button3.bind(on_release=self.open_settings)
         button4 = Button(
             text='Синхронизировать', size_hint=(1, None),
             #height=50,
@@ -320,6 +367,10 @@ class BackPanel(BoxLayout):
         self.add_widget(button3)
         self.add_widget(button4)
         self.add_widget(button5)
+
+    def open_settings(self, *largs):
+        self.navi_drawer.anim_to_state('closed')
+        self.popup.open(largs)
 
     def do_synchronization(self, *args):
         # todo можно попробовать тут разбить на потоки, а можно внутри этих
