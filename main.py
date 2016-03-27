@@ -59,9 +59,28 @@ class MyFace(StackLayout):
         self.money_label.text = '[b][color=008000]%s[/color][/b]' % value
 
     def show_money(self, pocket_name):
+        # todo учесть отсутствие такого имени кошелька
         self.money_label_text = unicode(self.pcs.get_one(
             pocket_name, self.pcs.simple_objects['OnePocket']
         ).balance)
+
+    def show_money_all(self):
+        if self.previous_action_name == 'In':
+            self.show_money(self.pocket.spinner.text)
+        elif self.previous_action_name == 'Out':
+            self.show_money(self.pocket.spinner.text)
+        elif self.previous_action_name == 'Between':
+            self.show_money(self.pocket.spinner.text)
+        elif self.previous_action_name == 'Exchange':
+            self.show_money(self.pocket.spinner.text)
+        elif self.previous_action_name == 'Credit1In':
+            pass
+        elif self.previous_action_name == 'Credit1Out':
+            pass
+        elif self.previous_action_name == 'Credit2In':
+            pass
+        elif self.previous_action_name == 'Credit2Out':
+            pass
 
     def prepare_action(self, action_name, *args, **kwargs):
         if self.previous_action_name == 'In':
@@ -175,39 +194,39 @@ class MyFace(StackLayout):
         self.previous_action_name = action_name
 
     def clear_inputs(self):
-        if self.action_name == 'In':
+        if self.previous_action_name == 'In':
             # self.pocket
             # self.item_in
             self.summ.text_input.text = ''
-            self.comment.text_input.text = ''
+            self.comment.text_input.text = u''
             # self.btn
-        elif self.action_name == 'Out':
+        elif self.previous_action_name == 'Out':
             # self.pocket
             # self.item_out
             self.summ.text_input.text = ''
             self.amount.text_input.text = ''
-            self.comment.text_input.text = ''
+            self.comment.text_input.text = u''
             # self.btn
-        elif self.action_name == 'Between':
+        elif self.previous_action_name == 'Between':
             # self.pocket
             # self.to_pocket
             self.summ.text_input.text = ''
-            self.comment.text_input.text = ''
+            self.comment.text_input.text = u''
             # self.btn
-        elif self.action_name == 'Exchange':
+        elif self.previous_action_name == 'Exchange':
             # self.pocket
             # self.to_pocket
             self.summ_out.text_input.text = ''
             self.summ_in.text_input.text = ''
-            self.comment.text_input.text = ''
+            self.comment.text_input.text = u''
             # self.btn
-        elif self.action_name == 'Credit1In':
+        elif self.previous_action_name == 'Credit1In':
             pass
-        elif self.action_name == 'Credit1Out':
+        elif self.previous_action_name == 'Credit1Out':
             pass
-        elif self.action_name == 'Credit2In':
+        elif self.previous_action_name == 'Credit2In':
             pass
-        elif self.action_name == 'Credit2Out':
+        elif self.previous_action_name == 'Credit2Out':
             pass
 
     def some_action(self, x):
@@ -222,7 +241,7 @@ class MyFace(StackLayout):
             self.item_in.spinner.text,
             float(self.summ.text_input.text),
             0,
-            self.comment.text_input.text)
+            unicode(self.comment.text_input.text.decode('utf-8')))
         self.show_money(self.pocket.spinner.text)
         self.clear_inputs()
 
@@ -237,7 +256,7 @@ class MyFace(StackLayout):
             self.item_out.spinner.text,
             float(self.summ.text_input.text),
             float(self.amount.text_input.text),
-            self.comment.text_input.text)
+            unicode(self.comment.text_input.text.decode('utf-8')))
         self.show_money(self.pocket.spinner.text)
         self.clear_inputs()
 
@@ -247,7 +266,8 @@ class MyFace(StackLayout):
                              self.pcs.simple_objects['OnePocket']),
             self.pcs.get_one(self.to_pocket.spinner.text,
                              self.pcs.simple_objects['OnePocket']),
-            float(self.summ.text_input.text), self.comment.text_input.text)
+            float(self.summ.text_input.text),
+            unicode(self.comment.text_input.text.decode('utf-8')))
         self.show_money(self.pocket.spinner.text)
         self.clear_inputs()
 
@@ -258,7 +278,8 @@ class MyFace(StackLayout):
             self.pcs.get_one(self.to_pocket.spinner.text,
                              self.pcs.simple_objects['OnePocket']),
             float(self.summ_out.text_input.text),
-            float(self.summ_in.text_input.text), self.comment.text_input.text)
+            float(self.summ_in.text_input.text),
+            unicode(self.comment.text_input.text.decode('utf-8')))
         self.show_money(self.pocket.spinner.text)
         self.clear_inputs()
 
@@ -293,7 +314,7 @@ class InptData(BoxLayout):
     def __init__(self, caption, **kwargs):
         self.caption = caption
         super(InptData, self).__init__(**kwargs)
-        self.text_input = TextInput(height=20)
+        self.text_input = TextInput(height=20, text=u'')
         self.add_widget(self.text_input)
 
 class AuthorizationPopUp(BoxLayout):
@@ -310,11 +331,11 @@ class AuthorizationPopUp(BoxLayout):
         self.add_widget(self.text_input1)
         label1 = Label(text='Login:')
         self.add_widget(label1)
-        self.text_input2 = TextInput()
+        self.text_input2 = TextInput(text=u'')
         self.add_widget(self.text_input2)
         label1 = Label(text='Password:')
         self.add_widget(label1)
-        self.text_input3 = TextInput(password=True)
+        self.text_input3 = TextInput(password=True, text=u'')
         self.add_widget(self.text_input3)
         button = Button(height=20, text='Save', size_hint=(1, None),
                         on_press=partial(self.save_and_hide))
@@ -329,9 +350,10 @@ class AuthorizationPopUp(BoxLayout):
 
 class BackPanel(BoxLayout):
 
-    def __init__(self, pcs, navi_drawer, **kwargs):
+    def __init__(self, pcs, navi_drawer, face, **kwargs):
         self.pcs = pcs
         self.navi_drawer = navi_drawer
+        self.face = face
         self.orientation = 'vertical'
         super(BackPanel, self).__init__(**kwargs)
         self.popup = Popup(title='Настройки',
@@ -378,18 +400,21 @@ class BackPanel(BoxLayout):
         self.pcs.post_data()
         self.pcs.get_data()
         self.navi_drawer.anim_to_state('closed')
+        self.face.show_money_all()
 
 
 class MyMoney(App):
     def build(self):
         pcs = PocketClass.Pockets('MyPythonMoney.db')
+        face = MyFace(pcs)
+
         navi_drawer = NavigationDrawer()
-        back_panel = BackPanel(pcs, navi_drawer)
         scroll_view = ScrollView(size_hint=(1, 1),
                                  #size=(720, 1280),
                                  do_scroll_x=False, do_scroll_y=True)
-        self.face = MyFace(pcs)
-        scroll_view.add_widget(self.face)
+        back_panel = BackPanel(pcs, navi_drawer, face)
+
+        scroll_view.add_widget(face)
         navi_drawer.add_widget(back_panel)
         navi_drawer.add_widget(scroll_view)
         return navi_drawer
