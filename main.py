@@ -314,6 +314,7 @@ class BackPanel(BoxLayout):
             text='Выход', size_hint=(1, None),
             #height=50,
             #on_press=partial(self.some_action)
+            on_press=partial(self.do_synchronization)
         )
         self.add_widget(button1)
         self.add_widget(button2)
