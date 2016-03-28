@@ -32,6 +32,8 @@ class MyFace(StackLayout):
         self.previous_action_name = ''
 
     def prepare_action_chooser(self):
+        self.rem_recur_widgets(self)
+        # self.clear_widgets()
         self.chooser = DrpDwnList(
                 'действие:',
                 [self.pcs.actions_names[i+1] for i in xrange(8)],
@@ -46,6 +48,11 @@ class MyFace(StackLayout):
         box_layout.add_widget(self.chooser)
         box_layout.add_widget(self.money_label)
         self.add_widget(box_layout)
+
+    def rem_recur_widgets(self, childro):
+        for ch in childro.children[:]:
+            self.rem_recur_widgets(ch)
+            childro.remove_widget(ch)
 
     def get_last(self, item_name):
         """
@@ -283,6 +290,11 @@ class MyFace(StackLayout):
         self.show_money(self.pocket.spinner.text)
         self.clear_inputs()
 
+    def prepare_report_view(self):
+        self.rem_recur_widgets(self)
+        # self.clear_widgets()
+        # todo отчет по деньгам
+
 
 class DrpDwnList(BoxLayout):
 
@@ -350,10 +362,11 @@ class AuthorizationPopUp(BoxLayout):
 
 class BackPanel(BoxLayout):
 
-    def __init__(self, pcs, navi_drawer, face, **kwargs):
+    def __init__(self, pcs, navi_drawer, face, this_app, **kwargs):
         self.pcs = pcs
         self.navi_drawer = navi_drawer
         self.face = face
+        self.this_app = this_app
         self.orientation = 'vertical'
         super(BackPanel, self).__init__(**kwargs)
         self.popup = Popup(title='Настройки',
@@ -362,13 +375,15 @@ class BackPanel(BoxLayout):
         button1 = Button(
             text='Учет', size_hint=(1, None),
             #height=50,
-            #on_press=partial(self.some_action)
+            # on_press=partial(self.open_defaults)
         )
+        button1.bind(on_release=self.open_defaults)
         button2 = Button(
             text='Отчеты', size_hint=(1, None),
             #height=50,
-            #on_press=partial(self.some_action)
+            # on_press=partial(self.open_reports)
         )
+        button2.bind(on_release=self.open_reports)
         button3 = Button(
             text='Настройки', size_hint=(1, None),
             #height=50,
@@ -383,13 +398,22 @@ class BackPanel(BoxLayout):
             text='Выход', size_hint=(1, None),
             #height=50,
             #on_press=partial(self.some_action)
-            on_press=partial(self.do_synchronization)
+            # on_press=partial(self.exit_program)
         )
+        button5.bind(on_release=self.exit_program)
         self.add_widget(button1)
         self.add_widget(button2)
         self.add_widget(button3)
         self.add_widget(button4)
         self.add_widget(button5)
+
+    def open_defaults(self, *largs):
+        self.navi_drawer.anim_to_state('closed')
+        self.face.prepare_action_chooser()
+
+    def open_reports(self, *largs):
+        self.navi_drawer.anim_to_state('closed')
+        self.face.prepare_report_view()
 
     def open_settings(self, *largs):
         self.navi_drawer.anim_to_state('closed')
@@ -403,6 +427,9 @@ class BackPanel(BoxLayout):
         self.navi_drawer.anim_to_state('closed')
         self.face.show_money_all()
 
+    def exit_program(self, *largs):
+        self.this_app.stop()
+
 
 class MyMoney(App):
     def build(self):
@@ -413,7 +440,7 @@ class MyMoney(App):
         scroll_view = ScrollView(size_hint=(1, 1),
                                  #size=(720, 1280),
                                  do_scroll_x=False, do_scroll_y=True)
-        back_panel = BackPanel(pcs, navi_drawer, face)
+        back_panel = BackPanel(pcs, navi_drawer, face, self)
 
         scroll_view.add_widget(face)
         navi_drawer.add_widget(back_panel)
