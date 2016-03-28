@@ -798,7 +798,7 @@ class Pockets:
                                         self.simple_objects['OneCurrency'])
                 ret_value.append(
                     {'action': 1,
-                     'Date': date,
+                     'date': date,
                      'comment': '',
                      'pocket_key': pocket.kwargs['Ref_Key'],
                      'item_in_key': item.kwargs['Ref_Key'],
@@ -820,7 +820,7 @@ class Pockets:
                     amount = float(d[5])
                 ret_value.append(
                     {'action': 2,
-                     'Date': date,
+                     'date': date,
                      'comment': '',
                      'pocket_key': pocket.kwargs['Ref_Key'],
                      'currency_key': currency.kwargs['Ref_Key'],
@@ -837,7 +837,7 @@ class Pockets:
                                         self.simple_objects['OneCurrency'])
                 ret_value.append(
                     {'action': 3,
-                     'Date': date,
+                     'date': date,
                      'pocket_out_key': pocket_out.kwargs['Ref_Key'],
                      'pocket_in_key': pocket_in.kwargs['Ref_Key'],
                      'currency_key': currency.kwargs['Ref_Key'],
@@ -854,7 +854,7 @@ class Pockets:
                                            self.simple_objects['OneCurrency'])
                 ret_value.append(
                     {'action': 4,
-                     'Date': date,
+                     'date': date,
                      'pocket_out_key': pocket_out.kwargs['Ref_Key'],
                      'pocket_in_key': pocket_in.kwargs['Ref_Key'],
                      'currency_out_key': currency_out.kwargs['Ref_Key'],
@@ -872,7 +872,7 @@ class Pockets:
                 contact = self.get_one(d[6], self.simple_objects['OneContact'])
                 ret_value.append(
                     {'action': 5,
-                     'Date': date,
+                     'date': date,
                      'contact_key': contact.kwargs['Ref_Key'],
                      'credit_key': credit.kwargs['Ref_Key'],
                      'pocket_key': pocket.kwargs['Ref_Key'],
@@ -892,7 +892,7 @@ class Pockets:
                                     self.simple_objects['OneOutItem'])
                 ret_value.append(
                     {'action': 6,
-                     'Date': date,
+                     'date': date,
                      'currency_key': currency.kwargs['Ref_Key'],
                      'additional_sum': float(d[7]),
                      'sum': float(d[4]),
@@ -917,7 +917,7 @@ class Pockets:
                                     self.simple_objects['OneInItem'])
                 ret_value.append(
                     {'action': 7,
-                     'Date': date,
+                     'date': date,
                      'currency_key': currency.kwargs['Ref_Key'],
                      'sum': float(d[4]),
                      'credit_key': credit.kwargs['Ref_Key'],
@@ -937,7 +937,7 @@ class Pockets:
                 contact = self.get_one(d[6], self.simple_objects['OneContact'])
                 ret_value.append(
                     {'action': 8,
-                     'Date': date,
+                     'date': date,
                      'contact_key': contact.kwargs['Ref_Key'],
                      'credit_key': credit.kwargs['Ref_Key'],
                      'pocket_key': pocket.kwargs['Ref_Key'],

@@ -964,7 +964,7 @@ class ODataRequests:
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
                self.fix_set['doc_in'] + self.fix_set['json_format'])
         value = {
-            "Date": data['Date'], #"2016-03-16T22:22:22",
+            "Date": data['date'], #"2016-03-16T22:22:22",
             u"Комментарий": data['comment'],
             u"Доходы": [{
                 "LineNumber": "1",
@@ -993,7 +993,7 @@ class ODataRequests:
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
                self.fix_set['doc_out'] + self.fix_set['json_format'])
         value = {
-            "Date": data['Date'],
+            "Date": data['date'],
             # u"РазделУчета_Key": "44747adc-5dd5-11e3-95ac-005056c00008",
             u"КошелекДолг": data['pocket_key'],
             u"КошелекДолг_Type": u"StandardODATA.Catalog_КошелькиИСчета",
