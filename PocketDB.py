@@ -850,6 +850,7 @@ class ODataRequests:
         self.settings = settings
 
     def get(self, url):
+        # todo: переписать на асинхронные запросы kivy.network.urlrequest.UrlRequest
         headers = {
             'Authorization': self.settings['Authorization']
         }
@@ -865,6 +866,7 @@ class ODataRequests:
         raise Exception(u'Get url не удался...')
 
     def post(self, url, body):
+        # todo: переписать на асинхронные запросы kivy.network.urlrequest.UrlRequest
         headers = {
             'Authorization': self.settings['Authorization']
         }
