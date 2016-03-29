@@ -33,7 +33,6 @@ class MyFace(StackLayout):
 
     def prepare_action_chooser(self):
         self.rem_recur_widgets(self)
-        # self.clear_widgets()
         self.chooser = DrpDwnList(
                 'действие:',
                 [self.pcs.actions_names[i+1] for i in xrange(8)],
@@ -44,7 +43,7 @@ class MyFace(StackLayout):
                 size_hint=(1, None),
                 orientation='horizontal')
         self.money_label = Label(markup=True)
-        self.money_label_text = 'остаток'
+        self.money_label_text = u'остаток'
         box_layout.add_widget(self.chooser)
         box_layout.add_widget(self.money_label)
         self.add_widget(box_layout)
@@ -292,7 +291,7 @@ class MyFace(StackLayout):
 
     def prepare_report_view(self):
         self.rem_recur_widgets(self)
-        # self.clear_widgets()
+        self.previous_action_name = 'reports'
         # todo отчет по деньгам
 
 
@@ -375,13 +374,11 @@ class BackPanel(BoxLayout):
         button1 = Button(
             text='Учет', size_hint=(1, None),
             #height=50,
-            # on_press=partial(self.open_defaults)
         )
         button1.bind(on_release=self.open_defaults)
         button2 = Button(
             text='Отчеты', size_hint=(1, None),
             #height=50,
-            # on_press=partial(self.open_reports)
         )
         button2.bind(on_release=self.open_reports)
         button3 = Button(
@@ -397,8 +394,6 @@ class BackPanel(BoxLayout):
         button5 = Button(
             text='Выход', size_hint=(1, None),
             #height=50,
-            #on_press=partial(self.some_action)
-            # on_press=partial(self.exit_program)
         )
         button5.bind(on_release=self.exit_program)
         self.add_widget(button1)

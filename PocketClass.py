@@ -699,30 +699,40 @@ class Pockets:
             self.settings['Authorization'] = data[1]
 
     def parse_income_cur(self, data):
+        if type(data) == bool and not data:
+            return
         for i in data:
             if 'IsFolder' in i and i['IsFolder'] == True:
                 continue
             self.set_cur(i['Description'], 1, '1', **i)
 
     def parse_income_in_items(self, data):
+        if type(data) == bool and not data:
+            return
         for i in data:
             if 'IsFolder' in i and i['IsFolder'] == True:
                 continue
             self.set_in_item(i['Description'], **i)
 
     def parse_income_out_items(self, data):
+        if type(data) == bool and not data:
+            return
         for i in data:
             if 'IsFolder' in i and i['IsFolder'] == True:
                 continue
             self.set_out_item(i['Description'], **i)
 
     def parse_income_contacts(self, data):
+        if type(data) == bool and not data:
+            return
         for i in data:
             if 'IsFolder' in i and i['IsFolder'] == True:
                 continue
             self.set_contact(i['Description'], **i)
 
     def parse_income_pockets(self, data):
+        if type(data) == bool and not data:
+            return
         for i in data:
             if 'IsFolder' in i and i['IsFolder'] == True:
                 continue
@@ -733,6 +743,8 @@ class Pockets:
                             0, **i)
 
     def parse_income_credits(self, data):
+        if type(data) == bool and not data:
+            return
         for i in data:
             if 'IsFolder' in i and i['IsFolder'] == True:
                 continue
@@ -746,6 +758,8 @@ class Pockets:
                             , 0, **i)
 
     def parse_balance(self, data):
+        if type(data) == bool and not data:
+            return
         for i in data:
             one_instance = None
             if (i['ExtDimension1_Type'] ==
@@ -760,6 +774,8 @@ class Pockets:
                 one_instance.set_balance(i[u'ВалютнаяСуммаBalance'])
 
     def parse_courses(self, data):
+        if type(data) == bool and not data:
+            return
         for i in data:
             one_instance = self.find_by_key(
                 i[u'Валюта_Key'], self.simple_objects['OneCurrency'])
