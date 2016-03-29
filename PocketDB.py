@@ -8,6 +8,7 @@ import os
 import string
 import urllib2
 import json
+from kivy.network.urlrequest import UrlRequest
 
 
 def get_type(val):
@@ -849,154 +850,84 @@ class ODataRequests:
                                        urllib2.quote('МыДалиВДолг')}
         self.settings = settings
 
-    def get(self, url):
-        # todo: переписать на асинхронные запросы kivy.network.urlrequest.UrlRequest
-        headers = {
-            'Authorization': self.settings['Authorization']
-        }
-        req = urllib2.Request(url, None, headers)
-        success_req = True
-        try:
-            result = urllib2.urlopen(req)
-        except:
-            success_req = False
-        if success_req:
-            if result.getcode() == 200:
-                return result.read()
-        raise Exception(u'Get url не удался...')
+    def get(self, url, **kwargs):
+        headers = {'Authorization': self.settings['Authorization']}
+        req = UrlRequest(url, req_headers=headers, **kwargs)
+        req.wait()
 
-    def post(self, url, body):
-        # todo: переписать на асинхронные запросы kivy.network.urlrequest.UrlRequest
-        headers = {
-            'Authorization': self.settings['Authorization']
-        }
-        req = urllib2.Request(url, body, headers)
-        success_req = True
-        try:
-            result = urllib2.urlopen(req)
-        except urllib2.URLError:
-            success_req = False
-        if success_req:
-            if result.getcode() == 201:
-                return result.read()
-        raise Exception(u'Post url не удался...')
+    def post(self, url, body, **kwargs):
+        self.get(url, req_body=body, **kwargs)
 
-    def get_currency(self):
+    # todo добавить on_error в kwargs
+    # todo считать запущенные и отработавшие для прогресса и мб еще чего-то.
+
+    def url_currency(self):
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
                self.fix_set['ref_cur'] + self.fix_set['json_format'])
-        web_pockets = ''
-        try:
-            web_pockets = self.get(url)
-        except:
-            return False
-        dict_pockets = json.loads(web_pockets)
-        # print dict_pockets
-        return dict_pockets['value']
+        return url
 
-    def get_pockets(self):
+    def url_pockets(self):
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
                self.fix_set['ref_pockets'] + self.fix_set['json_format'])
-        web_pockets = ''
-        try:
-            web_pockets = self.get(url)
-        except:
-            return False
-        dict_pockets = json.loads(web_pockets)
-        # print dict_pockets
-        return dict_pockets['value']
+        return url
 
-    def get_credits(self):
+    def url_credits(self):
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
                self.fix_set['ref_credits'] + self.fix_set['json_format'])
-        web_pockets = ''
-        try:
-            web_pockets = self.get(url)
-        except:
-            return False
-        dict_pockets = json.loads(web_pockets)
-        # for i in dict_pockets['value'][0]:
-        #     print i
-        return dict_pockets['value']
+        return url
 
-    def get_contacts(self):
+    def url_contacts(self):
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
                self.fix_set['ref_contacts'] + self.fix_set['json_format'])
-        web_pockets = ''
-        try:
-            web_pockets = self.get(url)
-        except:
-            return False
-        dict_pockets = json.loads(web_pockets)
-        # print dict_pockets
-        return dict_pockets['value']
+        return url
 
-    def get_in_items(self):
+    def url_in_items(self):
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
                self.fix_set['ref_in_items'] + self.fix_set['json_format'])
-        web_pockets = ''
-        try:
-            web_pockets = self.get(url)
-        except:
-            return False
-        dict_pockets = json.loads(web_pockets)
-        # print dict_pockets
-        return dict_pockets['value']
+        return url
 
-    def get_out_items(self):
+    def url_out_items(self):
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
                self.fix_set['ref_out_items'] + self.fix_set['json_format'])
-        web_pockets = ''
-        try:
-            web_pockets = self.get(url)
-        except:
-            return False
-        dict_pockets = json.loads(web_pockets)
-        # print dict_pockets
-        return dict_pockets['value']
+        return url
 
-    def get_balance(self):
+    def url_balance(self):
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
                self.fix_set['journ_oper'] + self.fix_set['balance'] +
                self.fix_set['json_format'])
-        web_pockets = ''
-        try:
-            web_pockets = self.get(url)
-        except:
-            return False
-        dict_pockets = json.loads(web_pockets)
-        # print dict_pockets
-        return dict_pockets['value']
+        return url
 
-    def get_courses(self):
+    def url_courses(self):
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
                self.fix_set['journ_cur'] + self.fix_set['slice'] +
                self.fix_set['json_format'])
-        web_pockets = ''
-        try:
-            web_pockets = self.get(url)
-        except:
-            return False
-        dict_pockets = json.loads(web_pockets)
-        # print dict_pockets
-        return dict_pockets['value']
+        return url
 
     def get_refs(self, callback_funcs):
         if 'OneCurrency' in callback_funcs:
-            callback_funcs['OneCurrency'](self.get_currency())
+            self.get(self.url_currency(),
+                     on_success=callback_funcs['OneCurrency'])
         if 'OneInItem' in callback_funcs:
-            callback_funcs['OneInItem'](self.get_in_items())
+            self.get(self.url_in_items(),
+                     on_success=callback_funcs['OneInItem'])
         if 'OneOutItem' in callback_funcs:
-            callback_funcs['OneOutItem'](self.get_out_items())
+            self.get(self.url_out_items(),
+                     on_success=callback_funcs['OneOutItem'])
         if 'OneContact' in callback_funcs:
-            callback_funcs['OneContact'](self.get_contacts())
+            self.get(self.url_contacts(),
+                     on_success=callback_funcs['OneContact'])
         if 'OnePocket' in callback_funcs:
-            callback_funcs['OnePocket'](self.get_pockets())
+            self.get(self.url_pockets(),
+                     on_success=callback_funcs['OnePocket'])
         if 'OneCredit' in callback_funcs:
-            callback_funcs['OneCredit'](self.get_credits())
+            self.get(self.url_credits(),
+                     on_success=callback_funcs['OneCredit'])
         if 'Balance' in callback_funcs:
-            callback_funcs['Balance'](self.get_balance())
+            self.get(self.url_balance(),
+                     on_success=callback_funcs['Balance'])
         if 'Courses' in callback_funcs:
-            callback_funcs['Courses'](self.get_courses())
+            self.get(self.url_courses(),
+                     on_success=callback_funcs['Courses'])
 
     def post_action_in(self, data):
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
@@ -1019,17 +950,7 @@ class ODataRequests:
             }],
             #u"АналитикаДокумента": []
         }
-        web_doc = ''
-        try:
-            web_doc = self.post(url, json.dumps(value))
-        except:
-            return False
-        dict_doc = json.loads(web_doc)
-        url = (self.settings['URL'] + self.fix_set['odata_url'] +
-               self.fix_set['doc_in'] + guid(dict_doc) +
-               self.fix_set['post'])
-        self.get(url)
-        return True
+        self.post(url, json.dumps(value), on_success=self.success_post_data)
 
     def post_action_out(self, data):
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
@@ -1052,18 +973,7 @@ class ODataRequests:
                 u"КомментарийСтроки": data['line_comment']
             }],
         }
-        # web_doc = self.post(url, json.dumps(value))
-        web_doc = ''
-        try:
-            web_doc = self.post(url, json.dumps(value))
-        except:
-            return False
-        dict_doc = json.loads(web_doc)
-        url = (self.settings['URL'] + self.fix_set['odata_url'] +
-               self.fix_set['doc_out'] + guid(dict_doc) +
-               self.fix_set['post'])
-        self.get(url)
-        return True
+        self.post(url, json.dumps(value), on_success=self.success_post_data)
 
     def post_action_between(self, data):
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
@@ -1080,18 +990,7 @@ class ODataRequests:
             # u"СписаноСУчетомРасходов": 1000,
             # u"ПолученоСУчетомРасходов": 1000,
         }
-        # web_doc = self.post(url, json.dumps(value))
-        web_doc = ''
-        try:
-            web_doc = self.post(url, json.dumps(value))
-        except:
-            return False
-        dict_doc = json.loads(web_doc)
-        url = (self.settings['URL'] + self.fix_set['odata_url'] +
-               self.fix_set['doc_between'] + guid(dict_doc) +
-               self.fix_set['post'])
-        self.get(url)
-        return True
+        self.post(url, json.dumps(value), on_success=self.success_post_data)
 
     def post_action_exchange(self, data):
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
@@ -1112,18 +1011,7 @@ class ODataRequests:
             u"СписаноСУчетомКомиссии": data['sum_out'],
             u"ПолученоСУчетомКомиссии": data['sum_in']
         }
-        # web_doc = self.post(url, json.dumps(value))
-        web_doc = ''
-        try:
-            web_doc = self.post(url, json.dumps(value))
-        except:
-            return False
-        dict_doc = json.loads(web_doc)
-        url = (self.settings['URL'] + self.fix_set['odata_url'] +
-               self.fix_set['doc_exchange'] + guid(dict_doc) +
-               self.fix_set['post'])
-        self.get(url)
-        return True
+        self.post(url, json.dumps(value), on_success=self.success_post_data)
 
     def post_action_credit1_in(self, data):
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
@@ -1144,18 +1032,7 @@ class ODataRequests:
             u"СуммаДополнительныхРасходов": data['addit_sum']
             # "РазделУчета_Key": "44747ad5-5dd5-11e3-95ac-005056c00008"
         }
-        # web_doc = self.post(url, json.dumps(value))
-        web_doc = ''
-        try:
-            web_doc = self.post(url, json.dumps(value))
-        except:
-            return False
-        dict_doc = json.loads(web_doc)
-        url = (self.settings['URL'] + self.fix_set['odata_url'] +
-               self.fix_set['doc_credit1_in'] + guid(dict_doc) +
-               self.fix_set['post'])
-        self.get(url)
-        return True
+        self.post(url, json.dumps(value), on_success=self.success_post_data)
 
     def post_action_credit1_out(self, data):
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
@@ -1185,18 +1062,7 @@ class ODataRequests:
             u"СуммаПроцентовВВалютеКредита": data['percent_sum'],
             # u"ФинансоваяЦель_Key": "00000000-0000-0000-0000-000000000000"
         }
-        # web_doc = self.post(url, json.dumps(value))
-        web_doc = ''
-        try:
-            web_doc = self.post(url, json.dumps(value))
-        except:
-            return False
-        dict_doc = json.loads(web_doc)
-        url = (self.settings['URL'] + self.fix_set['odata_url'] +
-               self.fix_set['doc_credit1_out'] + guid(dict_doc) +
-               self.fix_set['post'])
-        self.get(url)
-        return True
+        self.post(url, json.dumps(value), on_success=self.success_post_data)
 
     def post_action_credit2_in(self, data):
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
@@ -1218,18 +1084,7 @@ class ODataRequests:
             u"СуммаПроцентовВВалютеДолга": data['percent_sum'],
             u"СуммаСписания": 0
         }
-        # web_doc = self.post(url, json.dumps(value))
-        web_doc = ''
-        try:
-            web_doc = self.post(url, json.dumps(value))
-        except:
-            return False
-        dict_doc = json.loads(web_doc)
-        url = (self.settings['URL'] + self.fix_set['odata_url'] +
-               self.fix_set['doc_credit2_in'] + guid(dict_doc) +
-               self.fix_set['post'])
-        self.get(url)
-        return True
+        self.post(url, json.dumps(value), on_success=self.success_post_data)
 
     def post_action_credit2_out(self, data):
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
@@ -1248,18 +1103,12 @@ class ODataRequests:
             u"СуммаДополнительныхРасходов": data['additional_sum'],
             u"ВсегоРасход": data['total_sum']
         }
-        # web_doc = self.post(url, json.dumps(value))
-        web_doc = ''
-        try:
-            web_doc = self.post(url, json.dumps(value))
-        except:
-            return False
-        dict_doc = json.loads(web_doc)
-        url = (self.settings['URL'] + self.fix_set['odata_url'] +
-               self.fix_set['doc_credit2_out'] + guid(dict_doc) +
-               self.fix_set['post'])
+        self.post(url, json.dumps(value), on_success=self.success_post_data)
+
+    def success_post_data(self, req, data):
+        url = req.url.replace(self.fix_set['json_format'],
+                              guid(data) + self.fix_set['post'])
         self.get(url)
-        return True
 
     def post_new_contact(self, contact_name):
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
@@ -1269,7 +1118,7 @@ class ODataRequests:
             "Description": contact_name,
             u"Активность": True,
         }
-        # web_ref = self.post(url, json.dumps(value))
+        self.post(url, json.dumps(value))
         web_ref = ''
         try:
             web_ref = self.post(url, json.dumps(value))
@@ -1281,24 +1130,12 @@ class ODataRequests:
     # todo: создание новых статей, кредитов, кошельков.
 
     def post_docs(self, data):
-        no_errors = True
         for d in data:
-            succes_action = True
-            if d['action'] == 1:
-                succes_action = self.post_action_in(d)
-            if d['action'] == 2:
-                succes_action = self.post_action_out(d)
-            if d['action'] == 3:
-                succes_action = self.post_action_between(d)
-            if d['action'] == 4:
-                succes_action = self.post_action_exchange(d)
-            if d['action'] == 5:
-                succes_action = self.post_action_credit1_in(d)
-            if d['action'] == 6:
-                succes_action = self.post_action_credit1_out(d)
-            if d['action'] == 7:
-                succes_action = self.post_action_credit2_in(d)
-            if d['action'] == 8:
-                succes_action = self.post_action_credit2_out(d)
-            no_errors = no_errors and succes_action
-        return no_errors
+            if d['action'] == 1: self.post_action_in(d)
+            if d['action'] == 2: self.post_action_out(d)
+            if d['action'] == 3: self.post_action_between(d)
+            if d['action'] == 4: self.post_action_exchange(d)
+            if d['action'] == 5: self.post_action_credit1_in(d)
+            if d['action'] == 6: self.post_action_credit1_out(d)
+            if d['action'] == 7: self.post_action_credit2_in(d)
+            if d['action'] == 8: self.post_action_credit2_out(d)

@@ -698,42 +698,42 @@ class Pockets:
             self.settings['URL'] = data[0]
             self.settings['Authorization'] = data[1]
 
-    def parse_income_cur(self, data):
-        if type(data) == bool and not data:
+    def parse_income_cur(self, req, data):
+        if type(data['value']) != list:
             return
-        for i in data:
+        for i in data['value']:
             if 'IsFolder' in i and i['IsFolder'] == True:
                 continue
             self.set_cur(i['Description'], 1, '1', **i)
 
-    def parse_income_in_items(self, data):
-        if type(data) == bool and not data:
+    def parse_income_in_items(self, req, data):
+        if type(data['value']) != list:
             return
-        for i in data:
+        for i in data['value']:
             if 'IsFolder' in i and i['IsFolder'] == True:
                 continue
             self.set_in_item(i['Description'], **i)
 
-    def parse_income_out_items(self, data):
-        if type(data) == bool and not data:
+    def parse_income_out_items(self, req, data):
+        if type(data['value']) != list:
             return
-        for i in data:
+        for i in data['value']:
             if 'IsFolder' in i and i['IsFolder'] == True:
                 continue
             self.set_out_item(i['Description'], **i)
 
-    def parse_income_contacts(self, data):
-        if type(data) == bool and not data:
+    def parse_income_contacts(self, req, data):
+        if type(data['value']) != list:
             return
-        for i in data:
+        for i in data['value']:
             if 'IsFolder' in i and i['IsFolder'] == True:
                 continue
             self.set_contact(i['Description'], **i)
 
-    def parse_income_pockets(self, data):
-        if type(data) == bool and not data:
+    def parse_income_pockets(self, req, data):
+        if type(data['value']) != list:
             return
-        for i in data:
+        for i in data['value']:
             if 'IsFolder' in i and i['IsFolder'] == True:
                 continue
             self.set_pocket(i['Description'],
@@ -742,10 +742,10 @@ class Pockets:
                                 self.simple_objects['OneCurrency'])),
                             0, **i)
 
-    def parse_income_credits(self, data):
-        if type(data) == bool and not data:
+    def parse_income_credits(self, req, data):
+        if type(data['value']) != list:
             return
-        for i in data:
+        for i in data['value']:
             if 'IsFolder' in i and i['IsFolder'] == True:
                 continue
             self.set_credit(i['Description'],
@@ -757,10 +757,10 @@ class Pockets:
                                 self.simple_objects['OneContact']))
                             , 0, **i)
 
-    def parse_balance(self, data):
-        if type(data) == bool and not data:
+    def parse_balance(self, req, data):
+        if type(data['value']) != list:
             return
-        for i in data:
+        for i in data['value']:
             one_instance = None
             if (i['ExtDimension1_Type'] ==
                     u'StandardODATA.Catalog_КошелькиИСчета'):
@@ -773,10 +773,10 @@ class Pockets:
             if one_instance is not None:
                 one_instance.set_balance(i[u'ВалютнаяСуммаBalance'])
 
-    def parse_courses(self, data):
-        if type(data) == bool and not data:
+    def parse_courses(self, req, data):
+        if type(data['value']) != list:
             return
-        for i in data:
+        for i in data['value']:
             one_instance = self.find_by_key(
                 i[u'Валюта_Key'], self.simple_objects['OneCurrency'])
             if one_instance is not None:
@@ -973,8 +973,9 @@ class Pockets:
             self.get_settings()
             sr = PocketDB.ODataRequests(self.settings)
             data_dict = self.reformat_data()
-            if sr.post_docs(data_dict):
-                self.db.recreate_docs()
+            sr.post_docs(data_dict)
+            # todo проверка успешности посыла данных перед пересозданием
+            self.db.recreate_docs()
 
 
     # TODO если БД не прокатит, то чтение инфы о кошельках и остатках из файлов

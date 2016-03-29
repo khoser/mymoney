@@ -262,7 +262,8 @@ class MyFace(StackLayout):
             self.item_out.spinner.text,
             float(self.summ.text_input.text),
             float(self.amount.text_input.text),
-            unicode(self.comment.text_input.text.decode('utf-8')))
+            # unicode(self.comment.text_input.text.decode('utf-8')))
+            self.comment.text_input.text)
         self.show_money(self.pocket.spinner.text)
         self.clear_inputs()
 
