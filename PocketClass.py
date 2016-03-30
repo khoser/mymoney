@@ -974,8 +974,10 @@ class Pockets:
             sr = PocketDB.ODataRequests(self.settings)
             data_dict = self.reformat_data()
             sr.post_docs(data_dict)
-            # todo проверка успешности посыла данных перед пересозданием
-            self.db.recreate_docs()
+
+    def recreate_docs(self):
+        # todo проверка успешности посыла данных перед пересозданием
+        self.db.recreate_docs()
 
 
     # TODO если БД не прокатит, то чтение инфы о кошельках и остатках из файлов

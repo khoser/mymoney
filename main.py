@@ -416,8 +416,7 @@ class BackPanel(BoxLayout):
         self.popup.open(largs)
 
     def do_synchronization(self, *args):
-        # todo можно попробовать тут разбить на потоки, а можно внутри этих
-        # процедур:
+        # разбить на потоки получилось внутри этих процедур:
         self.pcs.post_data()
         self.pcs.get_data()
         self.navi_drawer.anim_to_state('closed')
