@@ -790,8 +790,7 @@ class Pockets:
                 self.simple_objects['OnePocket']: self.parse_income_pockets,
                 self.simple_objects['OneCredit']: self.parse_income_credits,
                 'Balance': self.parse_balance,
-                'Courses': self.parse_courses,
-                'recreate_docs': self.recreate_docs}
+                'Courses': self.parse_courses}
 
     def get_data(self):
         if (hasattr(self, 'settings') and
