@@ -851,19 +851,23 @@ class ODataRequests:
                         'doc_credit2_out': 'Document_' +
                                        urllib2.quote('МыДалиВДолг')}
         self.settings = settings
+        self.num_get_actions = 0
+        self.num_get_error_actions = 0
         self.num_post_actions = 0
-        self.event_to_call = threading.Event()
+        self.num_post_error_actions = 0
+        self.event_to_call_post = threading.Event()
+        self.event_to_call_get = threading.Event()
+
+    def re_settings(self, settings):
+        self.settings = settings
 
     def get(self, url, **kwargs):
         headers = {'Authorization': self.settings['Authorization']}
         req = UrlRequest(url, req_headers=headers, **kwargs)
-        req.wait()
+        req.wait(delay=0.1)
 
     def post(self, url, body, **kwargs):
         self.get(url, req_body=body, **kwargs)
-
-    # todo добавить on_error в kwargs
-    # todo считать запущенные и отработавшие для прогресса и мб еще чего-то.
 
     def url_currency(self):
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
@@ -910,28 +914,36 @@ class ODataRequests:
     def get_refs(self, callback_funcs):
         if 'OneCurrency' in callback_funcs:
             self.get(self.url_currency(),
-                     on_success=callback_funcs['OneCurrency'])
+                     on_success=callback_funcs['OneCurrency'],
+                     on_error=self.event_get_error_action)
         if 'OneInItem' in callback_funcs:
             self.get(self.url_in_items(),
-                     on_success=callback_funcs['OneInItem'])
+                     on_success=callback_funcs['OneInItem'],
+                     on_error=self.event_get_error_action)
         if 'OneOutItem' in callback_funcs:
             self.get(self.url_out_items(),
-                     on_success=callback_funcs['OneOutItem'])
+                     on_success=callback_funcs['OneOutItem'],
+                     on_error=self.event_get_error_action)
         if 'OneContact' in callback_funcs:
             self.get(self.url_contacts(),
-                     on_success=callback_funcs['OneContact'])
+                     on_success=callback_funcs['OneContact'],
+                     on_error=self.event_get_error_action)
         if 'OnePocket' in callback_funcs:
             self.get(self.url_pockets(),
-                     on_success=callback_funcs['OnePocket'])
+                     on_success=callback_funcs['OnePocket'],
+                     on_error=self.event_get_error_action)
         if 'OneCredit' in callback_funcs:
             self.get(self.url_credits(),
-                     on_success=callback_funcs['OneCredit'])
+                     on_success=callback_funcs['OneCredit'],
+                     on_error=self.event_get_error_action)
         if 'Balance' in callback_funcs:
             self.get(self.url_balance(),
-                     on_success=callback_funcs['Balance'])
+                     on_success=callback_funcs['Balance'],
+                     on_error=self.event_get_error_action)
         if 'Courses' in callback_funcs:
             self.get(self.url_courses(),
-                     on_success=callback_funcs['Courses'])
+                     on_success=callback_funcs['Courses'],
+                     on_error=self.event_get_error_action)
 
     def post_action_in(self, data):
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
@@ -954,7 +966,9 @@ class ODataRequests:
             }],
             #u"АналитикаДокумента": []
         }
-        self.post(url, json.dumps(value), on_success=self.success_post_data)
+        self.post(url, json.dumps(value),
+                  on_success=self.success_post_data,
+                  on_error=self.event_post_error_action)
 
     def post_action_out(self, data):
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
@@ -977,7 +991,9 @@ class ODataRequests:
                 u"КомментарийСтроки": data['line_comment']
             }],
         }
-        self.post(url, json.dumps(value), on_success=self.success_post_data)
+        self.post(url, json.dumps(value),
+                  on_success=self.success_post_data,
+                  on_error=self.event_post_error_action)
 
     def post_action_between(self, data):
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
@@ -994,7 +1010,9 @@ class ODataRequests:
             # u"СписаноСУчетомРасходов": 1000,
             # u"ПолученоСУчетомРасходов": 1000,
         }
-        self.post(url, json.dumps(value), on_success=self.success_post_data)
+        self.post(url, json.dumps(value),
+                  on_success=self.success_post_data,
+                  on_error=self.event_post_error_action)
 
     def post_action_exchange(self, data):
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
@@ -1015,7 +1033,9 @@ class ODataRequests:
             u"СписаноСУчетомКомиссии": data['sum_out'],
             u"ПолученоСУчетомКомиссии": data['sum_in']
         }
-        self.post(url, json.dumps(value), on_success=self.success_post_data)
+        self.post(url, json.dumps(value),
+                  on_success=self.success_post_data,
+                  on_error=self.event_post_error_action)
 
     def post_action_credit1_in(self, data):
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
@@ -1036,7 +1056,9 @@ class ODataRequests:
             u"СуммаДополнительныхРасходов": data['addit_sum']
             # "РазделУчета_Key": "44747ad5-5dd5-11e3-95ac-005056c00008"
         }
-        self.post(url, json.dumps(value), on_success=self.success_post_data)
+        self.post(url, json.dumps(value),
+                  on_success=self.success_post_data,
+                  on_error=self.event_post_error_action)
 
     def post_action_credit1_out(self, data):
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
@@ -1066,7 +1088,9 @@ class ODataRequests:
             u"СуммаПроцентовВВалютеКредита": data['percent_sum'],
             # u"ФинансоваяЦель_Key": "00000000-0000-0000-0000-000000000000"
         }
-        self.post(url, json.dumps(value), on_success=self.success_post_data)
+        self.post(url, json.dumps(value),
+                  on_success=self.success_post_data,
+                  on_error=self.event_post_error_action)
 
     def post_action_credit2_in(self, data):
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
@@ -1088,7 +1112,9 @@ class ODataRequests:
             u"СуммаПроцентовВВалютеДолга": data['percent_sum'],
             u"СуммаСписания": 0
         }
-        self.post(url, json.dumps(value), on_success=self.success_post_data)
+        self.post(url, json.dumps(value),
+                  on_success=self.success_post_data,
+                  on_error=self.event_post_error_action)
 
     def post_action_credit2_out(self, data):
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
@@ -1107,15 +1133,38 @@ class ODataRequests:
             u"СуммаДополнительныхРасходов": data['additional_sum'],
             u"ВсегоРасход": data['total_sum']
         }
-        self.post(url, json.dumps(value), on_success=self.success_post_data)
+        self.post(url, json.dumps(value),
+                  on_success=self.success_post_data,
+                  on_error=self.event_post_error_action)
 
     def success_post_data(self, req, data):
         url = req.url.replace(self.fix_set['json_format'],
                               guid(data) + self.fix_set['post'])
-        self.get(url)
+        self.get(url,
+                 on_success=self.event_post_action,
+                 on_error=self.event_post_error_action)
+
+    def event_post_action(self):
         self.num_post_actions -= 1
         if self.num_post_actions == 0:
-            self.event_to_call.set()
+            self.event_to_call_post.set()
+
+    def event_post_error_action(self):
+        self.num_post_actions -= 1
+        self.num_post_error_actions += 1
+        if self.num_post_actions == 0:
+            self.event_to_call_post.set()
+
+    def event_get_actions(self):
+        self.num_get_actions -= 1
+        if self.num_get_actions == 0:
+            self.event_to_call_get.set()
+
+    def event_get_error_action(self):
+        self.num_get_actions -= 1
+        self.num_get_error_actions += 1
+        if self.num_get_actions == 0:
+            self.event_to_call_get.set()
 
     def post_new_contact(self, contact_name):
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
@@ -1147,13 +1196,27 @@ class ODataRequests:
             if d['action'] == 7: self.post_action_credit2_in(d)
             if d['action'] == 8: self.post_action_credit2_out(d)
 
-    def writer(self, to_call):
-        self.event_to_call.wait() # wait for event
-        self.event_to_call.clear() # clean event for future
+    def post_writer(self, to_call):
+        self.event_to_call_post.wait()  # wait for event
+        self.event_to_call_post.clear()  # clean event for future
+        if self.num_post_error_actions == 0:
+            to_call()
+
+    def get_writer(self, to_call):
+        self.event_to_call_get.wait()  # wait for event
+        self.event_to_call_get.clear()  # clean event for future
         to_call()
 
     def wait_for_post_and_recreate(self, to_call):
-        self.event_to_call.clear()
-        t1 = threading.Thread(target=self.writer, args=(to_call,))
+        self.num_post_error_actions = 0
+        self.event_to_call_post.clear()
+        t1 = threading.Thread(target=self.post_writer, args=(to_call,))
         t1.start()
         # t1.join()
+
+    def wait_for_get_and_recreate(self, to_call):
+        self.num_get_error_actions = 0
+        self.event_to_call_get.clear()
+        t1 = threading.Thread(target=self.get_writer, args=(to_call,))
+        t1.start()
+

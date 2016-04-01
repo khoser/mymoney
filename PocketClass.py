@@ -151,6 +151,7 @@ class Pockets:
             8: 'Credit2Out',
         }
         self.settings = {'URL': '', 'Authorization': ''}
+        self.sr = PocketDB.ODataRequests(self.settings)
         # self.parsing = False
 
     def _drop_db(self):
@@ -699,40 +700,34 @@ class Pockets:
             self.settings['Authorization'] = data[1]
 
     def parse_income_cur(self, req, data):
-        if type(data['value']) != list:
-            return
         for i in data['value']:
             if 'IsFolder' in i and i['IsFolder'] == True:
                 continue
             self.set_cur(i['Description'], 1, '1', **i)
+        self.sr.event_get_actions()
 
     def parse_income_in_items(self, req, data):
-        if type(data['value']) != list:
-            return
         for i in data['value']:
             if 'IsFolder' in i and i['IsFolder'] == True:
                 continue
             self.set_in_item(i['Description'], **i)
+        self.sr.event_get_actions()
 
     def parse_income_out_items(self, req, data):
-        if type(data['value']) != list:
-            return
         for i in data['value']:
             if 'IsFolder' in i and i['IsFolder'] == True:
                 continue
             self.set_out_item(i['Description'], **i)
+        self.sr.event_get_actions()
 
     def parse_income_contacts(self, req, data):
-        if type(data['value']) != list:
-            return
         for i in data['value']:
             if 'IsFolder' in i and i['IsFolder'] == True:
                 continue
             self.set_contact(i['Description'], **i)
+        self.sr.event_get_actions()
 
     def parse_income_pockets(self, req, data):
-        if type(data['value']) != list:
-            return
         for i in data['value']:
             if 'IsFolder' in i and i['IsFolder'] == True:
                 continue
@@ -741,10 +736,9 @@ class Pockets:
                                 i[u'Валюта_Key'],
                                 self.simple_objects['OneCurrency'])),
                             0, **i)
+        self.sr.event_get_actions()
 
     def parse_income_credits(self, req, data):
-        if type(data['value']) != list:
-            return
         for i in data['value']:
             if 'IsFolder' in i and i['IsFolder'] == True:
                 continue
@@ -756,10 +750,9 @@ class Pockets:
                                 i[u'Контакт_Key'],
                                 self.simple_objects['OneContact']))
                             , 0, **i)
+        self.sr.event_get_actions()
 
     def parse_balance(self, req, data):
-        if type(data['value']) != list:
-            return
         for i in data['value']:
             one_instance = None
             if (i['ExtDimension1_Type'] ==
@@ -772,15 +765,15 @@ class Pockets:
                     i['ExtDimension1'], self.simple_objects['OneCredit'])
             if one_instance is not None:
                 one_instance.set_balance(i[u'ВалютнаяСуммаBalance'])
+        self.sr.event_get_actions()
 
     def parse_courses(self, req, data):
-        if type(data['value']) != list:
-            return
         for i in data['value']:
             one_instance = self.find_by_key(
                 i[u'Валюта_Key'], self.simple_objects['OneCurrency'])
             if one_instance is not None:
                 one_instance.set_course(i[u'Курс'], i[u'Кратность'])
+        self.sr.event_get_actions()
 
     def parsing_functions(self):
         return {self.simple_objects['OneCurrency']: self.parse_income_cur,
@@ -797,9 +790,10 @@ class Pockets:
                 "Authorization" in self.settings and
                 len(self.settings["Authorization"]) > 0):
             self.get_settings()
-            sr = PocketDB.ODataRequests(self.settings)
-            sr.get_refs(self.parsing_functions())
-            self.db.recreate_refs(self)
+            self.sr.re_settings(self.settings)
+            self.sr.num_get_actions = len(self.parsing_functions())
+            self.sr.get_refs(self.parsing_functions())
+            self.sr.wait_for_get_and_recreate(self.db.recreate_refs)
 
     def reformat_data(self):
         data_dict = self.db.prepare_send_data()
@@ -971,15 +965,19 @@ class Pockets:
                 "Authorization" in self.settings and
                 len(self.settings["Authorization"]) > 0):
             self.get_settings()
-            sr = PocketDB.ODataRequests(self.settings)
+            self.sr.re_settings(self.settings)
             data_dict = self.reformat_data()
             if len(data_dict) > 0:
-                sr.num_post_actions = len(data_dict)
-                sr.wait_for_post_and_recreate(self.db.recreate_docs)
-                sr.post_docs(data_dict)
+                self.sr.num_post_actions = len(data_dict)
+                self.sr.wait_for_post_and_recreate(self.db.recreate_docs)
+                self.sr.post_docs(data_dict)
 
+    def check_progress(self):
+        return (self.sr.num_get_actions + self.sr.num_post_actions,
+                self.sr.num_get_error_actions + self.sr.num_post_error_actions)
 
     # TODO если БД не прокатит, то чтение инфы о кошельках и остатках из файлов
+
     """
     def fill_pockets_from_file(self):
         # Заполняем кошельки из файла

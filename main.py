@@ -4,6 +4,9 @@
 """
 Интерфейсная часть
 """
+import re
+from kivy.core.window import Window
+
 import PocketClass
 from garden.navigationdrawer import NavigationDrawer
 from kivy.app import App, Builder
@@ -131,7 +134,7 @@ class MyFace(StackLayout):
             self.item_in = DrpDwnList('Статья:',
                                       [unicode(i) for i in self.pcs.in_items])
             self.add_widget(self.item_in)
-            self.summ = InptData('Сумма:')
+            self.summ = InptData('Сумма:', inp_type=FloatInput)
             self.add_widget(self.summ)
             self.comment = InptData('Комментарий:')
             self.add_widget(self.comment)
@@ -146,9 +149,9 @@ class MyFace(StackLayout):
             self.item_out = DrpDwnList('Статья:',
                                        [unicode(i) for i in self.pcs.out_items])
             self.add_widget(self.item_out)
-            self.summ = InptData('Сумма:')
+            self.summ = InptData('Сумма:', inp_type=FloatInput)
             self.add_widget(self.summ)
-            self.amount = InptData('Количество:')
+            self.amount = InptData('Количество:', inp_type=FloatInput)
             self.add_widget(self.amount)
             self.comment = InptData('Комментарий:')
             self.add_widget(self.comment)
@@ -164,7 +167,7 @@ class MyFace(StackLayout):
                                      [unicode(i) for i in self.pcs.pockets],
                                      self.show_money)
             self.add_widget(self.to_pocket)
-            self.summ = InptData('Сумма:')
+            self.summ = InptData('Сумма:', inp_type=FloatInput)
             self.add_widget(self.summ)
             self.comment = InptData('Комментарий:')
             self.add_widget(self.comment)
@@ -180,14 +183,14 @@ class MyFace(StackLayout):
                                      [unicode(i) for i in self.pcs.pockets],
                                      self.show_money)
             self.add_widget(self.to_pocket)
-            self.summ_out = InptData('Сумма потрачено:')
+            self.summ_out = InptData('Сумма потрачено:', inp_type=FloatInput)
             self.add_widget(self.summ_out)
-            self.summ_in = InptData('Сумма получено:')
+            self.summ_in = InptData('Сумма получено:', inp_type=FloatInput)
             self.add_widget(self.summ_in)
             self.comment = InptData('Комментарий:')
             self.add_widget(self.comment)
             self.btn = Button(text='Учесть', size_hint=(1, None), height=50,
-                              on_press=partial(self.some_action))
+                              on_press=partial(self.do_action_exchange))
             self.add_widget(self.btn)
         elif action_name == 'Credit1In':
             pass #todo обработка интерфейса и работы с кредитами
@@ -321,12 +324,26 @@ class DrpDwnList(BoxLayout):
         self.action(text)
 
 
+class FloatInput(TextInput):
+
+    pat = re.compile('[^0-9]')
+
+    def insert_text(self, substring, from_undo=False):
+        pat = self.pat
+        if '.' in self.text:
+            s = re.sub(pat, '', substring)
+        else:
+            s = '.'.join([re.sub(pat, '', s)
+                          for s in substring.split('.',1)])
+        return super(FloatInput, self).insert_text(s, from_undo=from_undo)
+
+
 class InptData(BoxLayout):
 
-    def __init__(self, caption, **kwargs):
+    def __init__(self, caption, inp_type=TextInput, **kwargs):
         self.caption = caption
         super(InptData, self).__init__(**kwargs)
-        self.text_input = TextInput(height=20, text=u'')
+        self.text_input = inp_type(height=20, text=u'', multiline=False)
         self.add_widget(self.text_input)
 
 class AuthorizationPopUp(BoxLayout):
@@ -429,11 +446,16 @@ class BackPanel(BoxLayout):
 class MyMoney(App):
     def build(self):
         pcs = PocketClass.Pockets('MyPythonMoney.db')
-        face = MyFace(pcs)
+        face = MyFace(pcs, size_hint_y=None)
+        face.bind(minimum_height=face.setter('height'))
+        # layout = GridLayout(cols=1, spacing=10, size_hint_y=None)
+        # Make sure the height is such that there is something to scroll.
+        # layout.bind(minimum_height=layout.setter('height'))
 
         navi_drawer = NavigationDrawer()
-        scroll_view = ScrollView(size_hint=(1, 1),
-                                 #size=(720, 1280),
+        scroll_view = ScrollView(size_hint=(None, None),
+                                 size=Window.size,
+                                 pos_hint={'center_x':.5, 'center_y':.5},
                                  do_scroll_x=False, do_scroll_y=True)
         back_panel = BackPanel(pcs, navi_drawer, face, self)
 
