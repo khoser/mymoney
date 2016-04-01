@@ -790,7 +790,8 @@ class Pockets:
                 self.simple_objects['OnePocket']: self.parse_income_pockets,
                 self.simple_objects['OneCredit']: self.parse_income_credits,
                 'Balance': self.parse_balance,
-                'Courses': self.parse_courses}
+                'Courses': self.parse_courses,
+                'recreate_docs': self.recreate_docs}
 
     def get_data(self):
         if (hasattr(self, 'settings') and
@@ -973,11 +974,10 @@ class Pockets:
             self.get_settings()
             sr = PocketDB.ODataRequests(self.settings)
             data_dict = self.reformat_data()
-            sr.post_docs(data_dict)
-
-    def recreate_docs(self):
-        # todo проверка успешности посыла данных перед пересозданием
-        self.db.recreate_docs()
+            if len(data_dict) > 0:
+                sr.num_post_actions = len(data_dict)
+                sr.wait_for_post_and_recreate(self.db.recreate_docs)
+                sr.post_docs(data_dict)
 
 
     # TODO если БД не прокатит, то чтение инфы о кошельках и остатках из файлов

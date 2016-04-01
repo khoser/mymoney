@@ -6,9 +6,11 @@
 import sqlite3
 import os
 import string
+import threading
 import urllib2
 import json
 from kivy.network.urlrequest import UrlRequest
+from time import sleep
 
 
 def get_type(val):
@@ -849,6 +851,8 @@ class ODataRequests:
                         'doc_credit2_out': 'Document_' +
                                        urllib2.quote('МыДалиВДолг')}
         self.settings = settings
+        self.num_post_actions = 0
+        self.event_to_call = threading.Event()
 
     def get(self, url, **kwargs):
         headers = {'Authorization': self.settings['Authorization']}
@@ -1109,6 +1113,9 @@ class ODataRequests:
         url = req.url.replace(self.fix_set['json_format'],
                               guid(data) + self.fix_set['post'])
         self.get(url)
+        self.num_post_actions -= 1
+        if self.num_post_actions == 0:
+            self.event_to_call.set()
 
     def post_new_contact(self, contact_name):
         url = (self.settings['URL'] + self.fix_set['odata_url'] +
@@ -1139,3 +1146,14 @@ class ODataRequests:
             if d['action'] == 6: self.post_action_credit1_out(d)
             if d['action'] == 7: self.post_action_credit2_in(d)
             if d['action'] == 8: self.post_action_credit2_out(d)
+
+    def writer(self, to_call):
+        self.event_to_call.wait() # wait for event
+        self.event_to_call.clear() # clean event for future
+        to_call()
+
+    def wait_for_post_and_recreate(self, to_call):
+        self.event_to_call.clear()
+        t1 = threading.Thread(target=self.writer, args=(to_call,))
+        t1.start()
+        # t1.join()
