@@ -1144,23 +1144,23 @@ class ODataRequests:
                  on_success=self.event_post_action,
                  on_error=self.event_post_error_action)
 
-    def event_post_action(self):
+    def event_post_action(self, req=None, result=None):
         self.num_post_actions -= 1
         if self.num_post_actions == 0:
             self.event_to_call_post.set()
 
-    def event_post_error_action(self):
+    def event_post_error_action(self, req=None, result=None):
         self.num_post_actions -= 1
         self.num_post_error_actions += 1
         if self.num_post_actions == 0:
             self.event_to_call_post.set()
 
-    def event_get_actions(self):
+    def event_get_actions(self, req=None, result=None):
         self.num_get_actions -= 1
         if self.num_get_actions == 0:
             self.event_to_call_get.set()
 
-    def event_get_error_action(self):
+    def event_get_error_action(self, req=None, result=None):
         self.num_get_actions -= 1
         self.num_get_error_actions += 1
         if self.num_get_actions == 0:
@@ -1205,7 +1205,8 @@ class ODataRequests:
     def get_writer(self, to_call):
         self.event_to_call_get.wait()  # wait for event
         self.event_to_call_get.clear()  # clean event for future
-        to_call()
+        if self.num_get_error_actions == 0:
+            to_call()
 
     def wait_for_post_and_recreate(self, to_call):
         self.num_post_error_actions = 0

@@ -441,15 +441,15 @@ class TestAll(unittest.TestCase):
         self.assertEqual(type(pcs.credits[0].kwargs[u'ВалютнаяСуммаBalance']),
                          float)
 
-    def test_get_o_data(self):
-        pcs = PocketClass.Pockets('MyPythonMoney.db')
-        pcs.get_settings()
-        pcs.get_data()
-
-    def test_post_o_data(self):
-        pcs = PocketClass.Pockets('MyPythonMoney.db')
-        pcs.get_settings()
-        pcs.post_data()
+    # def test_get_o_data(self):
+    #     pcs = PocketClass.Pockets('MyPythonMoney.db')
+    #     pcs.get_settings()
+    #     pcs.get_data()
+    #
+    # def test_post_o_data(self):
+    #     pcs = PocketClass.Pockets('MyPythonMoney.db')
+    #     pcs.get_settings()
+    #     pcs.post_data()
 
     # def test_odata(self):
     #     # print ('test odata')

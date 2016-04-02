@@ -58,9 +58,8 @@ class OneCurrency(SimpleObject):
         if type(self.course) in [int, float] and self.course != 0:
             ret_val = self.course
         if float(self.multiplicity) != 0:
-            ret_val /= self.multiplicity
+            ret_val /= float(self.multiplicity)
         return ret_val
-
 
     def get_info(self):
         # вывод информации в виде строки
@@ -705,6 +704,7 @@ class Pockets:
                 continue
             self.set_cur(i['Description'], 1, '1', **i)
         self.sr.event_get_actions()
+        # self.currency.sort()
 
     def parse_income_in_items(self, req, data):
         for i in data['value']:
@@ -712,6 +712,7 @@ class Pockets:
                 continue
             self.set_in_item(i['Description'], **i)
         self.sr.event_get_actions()
+        # self.in_items.sort()
 
     def parse_income_out_items(self, req, data):
         for i in data['value']:
@@ -719,6 +720,7 @@ class Pockets:
                 continue
             self.set_out_item(i['Description'], **i)
         self.sr.event_get_actions()
+        # self.out_items.sort()
 
     def parse_income_contacts(self, req, data):
         for i in data['value']:
@@ -726,6 +728,7 @@ class Pockets:
                 continue
             self.set_contact(i['Description'], **i)
         self.sr.event_get_actions()
+        # self.contacts.sort()
 
     def parse_income_pockets(self, req, data):
         for i in data['value']:
@@ -737,6 +740,7 @@ class Pockets:
                                 self.simple_objects['OneCurrency'])),
                             0, **i)
         self.sr.event_get_actions()
+        # self.pockets.sort()
 
     def parse_income_credits(self, req, data):
         for i in data['value']:
@@ -751,6 +755,7 @@ class Pockets:
                                 self.simple_objects['OneContact']))
                             , 0, **i)
         self.sr.event_get_actions()
+        # self.credits.sort()
 
     def parse_balance(self, req, data):
         for i in data['value']:
