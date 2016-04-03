@@ -1202,11 +1202,11 @@ class ODataRequests:
         if self.num_post_error_actions == 0:
             to_call()
 
-    def get_writer(self, to_call):
+    def get_writer(self, to_call, arg):
         self.event_to_call_get.wait()  # wait for event
         self.event_to_call_get.clear()  # clean event for future
         if self.num_get_error_actions == 0:
-            to_call()
+            to_call(arg)
 
     def wait_for_post_and_recreate(self, to_call):
         self.num_post_error_actions = 0
@@ -1215,9 +1215,9 @@ class ODataRequests:
         t1.start()
         # t1.join()
 
-    def wait_for_get_and_recreate(self, to_call):
+    def wait_for_get_and_recreate(self, to_call, arg):
         self.num_get_error_actions = 0
         self.event_to_call_get.clear()
-        t1 = threading.Thread(target=self.get_writer, args=(to_call,))
+        t1 = threading.Thread(target=self.get_writer, args=(to_call, arg))
         t1.start()
 

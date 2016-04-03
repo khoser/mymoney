@@ -796,9 +796,9 @@ class Pockets:
                 len(self.settings["Authorization"]) > 0):
             self.get_settings()
             self.sr.re_settings(self.settings)
-            self.sr.num_get_actions = len(self.parsing_functions())
+            self.sr.num_get_actions = len(self.parsing_functions().items())
+            self.sr.wait_for_get_and_recreate(self.db.recreate_refs, self)
             self.sr.get_refs(self.parsing_functions())
-            self.sr.wait_for_get_and_recreate(self.db.recreate_refs)
 
     def reformat_data(self):
         data_dict = self.db.prepare_send_data()

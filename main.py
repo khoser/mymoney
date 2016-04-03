@@ -294,6 +294,70 @@ class MyFace(StackLayout):
     def prepare_report_view(self):
         self.rem_recur_widgets(self)
         self.previous_action_name = 'reports'
+        p_ar = [unicode(i) for i in self.pcs.pockets]
+        p_ar.sort()
+        c_ar = [unicode(i) for i in self.pcs.credits]
+        c_ar.sort()
+        cur_va = {}
+        for p in p_ar:
+            one = self.pcs.get_one(p, self.pcs.simple_objects['OnePocket'])
+            if one.balance == 0:
+                continue
+            if cur_va.has_key(one.currency):
+                cur_va[one.currency] += one.balance
+            else:
+                cur_va[one.currency] = one.balance
+            p_lbl_name = Label(text='%s [sub]%s[/sub]'%(p, one.currency),
+                            markup=True)
+            p_lbl_blnc = Label(text=unicode(one.balance),
+                               halign='right', valign='middle')
+            box_layout = BoxLayout(
+                padding=0,
+                spacing=0,
+                size_hint=(1, None),
+                orientation='horizontal')
+            box_layout.add_widget(p_lbl_name)
+            box_layout.add_widget(p_lbl_blnc)
+            self.add_widget(box_layout)
+        for p in c_ar:
+            one = self.pcs.get_one(p, self.pcs.simple_objects['OneCredit'])
+            if one.balance == 0:
+                continue
+            if cur_va.has_key(one.currency):
+                cur_va[one.currency] += one.balance
+            else:
+                cur_va[one.currency] = one.balance
+            p_lbl_name = Label(text='%s [sub]%s[/sub][sup]%s[/sup]'%
+                                    (p, one.currency, one.contact),
+                               markup=True)
+            p_lbl_blnc = Label(text=unicode(one.balance), text_size=self.size)
+            box_layout = BoxLayout(
+                padding=0,
+                spacing=0,
+                size_hint=(1, None),
+                orientation='horizontal')
+            box_layout.add_widget(p_lbl_name)
+            box_layout.add_widget(p_lbl_blnc)
+            self.add_widget(box_layout)
+        box_layout = BoxLayout(
+                padding=0,
+                spacing=0,
+                size_hint=(1, None))
+        lbl_fin = Label(text=u'Финансовый результат')
+        box_layout.add_widget(lbl_fin)
+        self.add_widget(box_layout)
+        for k in cur_va:
+            p_lbl_name = Label(text=k)
+            p_lbl_blnc = Label(text=unicode(cur_va[k]))
+            box_layout = BoxLayout(
+                padding=0,
+                spacing=0,
+                size_hint=(1, None),
+                orientation='horizontal')
+            box_layout.add_widget(p_lbl_name)
+            box_layout.add_widget(p_lbl_blnc)
+            self.add_widget(box_layout)
+
         # todo отчет по деньгам
 
 
