@@ -6,6 +6,7 @@
 """
 import re
 from kivy.core.window import Window
+from kivy.uix.gridlayout import GridLayout
 
 import PocketClass
 from garden.navigationdrawer import NavigationDrawer
@@ -293,7 +294,30 @@ class MyFace(StackLayout):
 
     def prepare_report_view(self):
         self.rem_recur_widgets(self)
-        self.previous_action_name = 'reports'
+        box_layout = BoxLayout(
+            padding=0,
+            spacing=0,
+            size_hint_x=1,
+            size_hint_y=None,
+            #, None),
+            # height=20,
+            orientation='horizontal')
+        btn_rep = Button(text=u'Фин. рез.',  # size_hint=(1, None),
+                         on_press=self.prepare_report_basis)
+        box_layout.add_widget(btn_rep)
+        btn_rep = Button(text=u'Не синхронизированые операции',
+                         # size_hint=(1, None),
+                         on_press=self.prepare_report_to_sync)
+        box_layout.add_widget(btn_rep)
+        btn_rep = DrpDwnList('Операции на сервере',
+                             [u'День', u'Неделя', u'Месяц', u'Год'],
+                             self.prepare_report_remote)
+        box_layout.add_widget(btn_rep)
+        self.add_widget(box_layout)
+
+    def prepare_report_basis(self, *args):
+        self.prepare_report_view()
+        self.previous_action_name = 'report_basis'
         p_ar = [unicode(i) for i in self.pcs.pockets]
         p_ar.sort()
         c_ar = [unicode(i) for i in self.pcs.credits]
@@ -358,8 +382,13 @@ class MyFace(StackLayout):
             box_layout.add_widget(p_lbl_blnc)
             self.add_widget(box_layout)
 
-        # todo отчет по деньгам
+    def prepare_report_to_sync(self, *args):
+        self.prepare_report_view()
+        self.previous_action_name = 'report_to_sync'
 
+    def prepare_report_remote(self, *args):
+        self.prepare_report_view()
+        self.previous_action_name = 'report_remote'
 
 class DrpDwnList(BoxLayout):
 
@@ -374,7 +403,7 @@ class DrpDwnList(BoxLayout):
             # available values
             values=values,
             # just for positioning in our example
-            #size_hint=(None, None),
+            size_hint=(1, .5),
             #size=(100, 44),
             #pos_hint={'center_x': .5, 'center_y': .5}
                 )
@@ -428,7 +457,7 @@ class AuthorizationPopUp(BoxLayout):
         self.add_widget(label1)
         self.text_input3 = TextInput(password=True, text=u'')
         self.add_widget(self.text_input3)
-        button = Button(height=20, text='Save', size_hint=(1, None),
+        button = Button(height=40, text='Save', size_hint=(1, None),
                         on_press=partial(self.save_and_hide))
         self.add_widget(button)
 
