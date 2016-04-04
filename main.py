@@ -342,6 +342,7 @@ class MyFace(StackLayout):
                 padding=0,
                 spacing=0,
                 size_hint=(1, None),
+                height=25,
                 orientation='horizontal')
             box_layout.add_widget(p_lbl_name)
             box_layout.add_widget(p_lbl_blnc)
@@ -362,6 +363,7 @@ class MyFace(StackLayout):
                 padding=0,
                 spacing=0,
                 size_hint=(1, None),
+                height=25,
                 orientation='horizontal')
             box_layout.add_widget(p_lbl_name)
             box_layout.add_widget(p_lbl_blnc)
@@ -380,6 +382,7 @@ class MyFace(StackLayout):
                 padding=0,
                 spacing=0,
                 size_hint=(1, None),
+                height=25,
                 orientation='horizontal')
             box_layout.add_widget(p_lbl_name)
             box_layout.add_widget(p_lbl_blnc)
@@ -388,6 +391,42 @@ class MyFace(StackLayout):
     def prepare_report_to_sync(self, *args):
         self.prepare_report_view()
         self.previous_action_name = 'report_to_sync'
+        data_dict = self.pcs.db.prepare_send_data()
+        for d_ids in data_dict:
+            box_layout = BoxLayout(
+                padding=0,
+                spacing=0,
+                size_hint=(1, None),
+                height=12,
+                orientation='horizontal')
+            p_lbl_name = Label(text=unicode(d_ids[0]), width=10)
+            box_layout.add_widget(p_lbl_name)
+            if d_ids[1] == 1:
+                lbl_text = '[color=009900][b]+[/b][/color]'
+            elif d_ids[1] == 2:
+                lbl_text = '[color=990000][b]-[/b][/color]'
+            elif d_ids[1] == 3:
+                lbl_text = '[color=000099][b]=[/b][/color]'
+            elif d_ids[1] == 4:
+                lbl_text = '[color=999999][b]<>[/b][/color]'
+            elif d_ids[1] == 5:
+                lbl_text = '[color=FFFF00][b]!-[/b][/color]'
+            elif d_ids[1] == 6:
+                lbl_text = '[color=FFFF00][b]!+[/b][/color]'
+            elif d_ids[1] == 7:
+                lbl_text = '[color=FFFF00][b]+![/b][/color]'
+            elif d_ids[1] == 8:
+                lbl_text = '[color=FFFF00][b]-![/b][/color]'
+            p_lbl_name = Label(text=lbl_text, markup=True, width=10)
+            box_layout.add_widget(p_lbl_name)
+            for k in d_ids[2:]:
+                if k == '-':
+                    continue
+                lbl_text = unicode(k).replace(u' ', u'\n')
+                box_layout.height += 8 * lbl_text.count('\n')
+                p_lbl_name = Label(text=lbl_text, markup=True)
+                box_layout.add_widget(p_lbl_name)
+            self.add_widget(box_layout)
 
     def prepare_report_remote(self, *args):
         self.prepare_report_view()
