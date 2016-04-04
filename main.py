@@ -249,7 +249,8 @@ class MyFace(StackLayout):
             self.item_in.spinner.text,
             float(self.summ.text_input.text),
             0,
-            unicode(self.comment.text_input.text.decode('utf-8')))
+            # unicode(self.comment.text_input.text.decode('utf-8')))
+            self.comment.text_input.text)
         self.show_money(self.pocket.spinner.text)
         self.clear_inputs()
 
@@ -276,7 +277,8 @@ class MyFace(StackLayout):
             self.pcs.get_one(self.to_pocket.spinner.text,
                              self.pcs.simple_objects['OnePocket']),
             float(self.summ.text_input.text),
-            unicode(self.comment.text_input.text.decode('utf-8')))
+            # unicode(self.comment.text_input.text.decode('utf-8')))
+            self.comment.text_input.text)
         self.show_money(self.pocket.spinner.text)
         self.clear_inputs()
 
@@ -288,7 +290,8 @@ class MyFace(StackLayout):
                              self.pcs.simple_objects['OnePocket']),
             float(self.summ_out.text_input.text),
             float(self.summ_in.text_input.text),
-            unicode(self.comment.text_input.text.decode('utf-8')))
+            # unicode(self.comment.text_input.text.decode('utf-8')))
+            self.comment.text_input.text)
         self.show_money(self.pocket.spinner.text)
         self.clear_inputs()
 
@@ -389,6 +392,7 @@ class MyFace(StackLayout):
     def prepare_report_remote(self, *args):
         self.prepare_report_view()
         self.previous_action_name = 'report_remote'
+
 
 class DrpDwnList(BoxLayout):
 

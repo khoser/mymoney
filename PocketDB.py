@@ -802,7 +802,7 @@ class PocketsDB:
         data = []
         if returnvalue == 1:
             return data
-        data = [[row[i+1] for i in xrange(9)] for row in cur]
+        data = [[row[i] for i in xrange(10)] for row in cur]
         con.close()
         return data
 

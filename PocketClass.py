@@ -804,7 +804,8 @@ class Pockets:
         data_dict = self.db.prepare_send_data()
         data_dict.sort()
         ret_value = []
-        for d in data_dict:
+        for d_ids in data_dict:
+            d = d_ids[1:]
             date = d[1].replace(' ', 'T')  # '2016-03-17T22:22:22'
             if d[0] == 1:
                 pocket = self.get_one(d[2], self.simple_objects['OnePocket'])
