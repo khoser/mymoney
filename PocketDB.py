@@ -851,12 +851,15 @@ class ODataRequests:
                         'doc_credit2_out': 'Document_' +
                                        urllib2.quote('МыДалиВДолг')}
         self.settings = settings
+        self.max_get_actions = 0
         self.num_get_actions = 0
         self.num_get_error_actions = 0
+        self.max_post_actions = 0
         self.num_post_actions = 0
         self.num_post_error_actions = 0
         self.event_to_call_post = threading.Event()
         self.event_to_call_get = threading.Event()
+        self.set_progress = None
 
     def re_settings(self, settings):
         self.settings = settings
@@ -1221,3 +1224,9 @@ class ODataRequests:
         t1 = threading.Thread(target=self.get_writer, args=(to_call, arg))
         t1.start()
 
+    def check_progress(self):
+        res = (self.num_get_actions + self.num_post_actions,
+               self.num_get_error_actions + self.num_post_error_actions)
+        if self.set_progress is not None:
+            self.set_progress(res[0])
+        return res

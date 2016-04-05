@@ -7,6 +7,7 @@
 import re
 from kivy.core.window import Window
 from kivy.uix.gridlayout import GridLayout
+from kivy.uix.progressbar import ProgressBar
 
 import PocketClass
 from garden.navigationdrawer import NavigationDrawer
@@ -399,8 +400,23 @@ class MyFace(StackLayout):
                 size_hint=(1, None),
                 height=12,
                 orientation='horizontal')
+            box_left = BoxLayout(
+                padding=0,
+                spacing=0,
+                size_hint=(.2, 1),
+                orientation='horizontal')
+            box_mid = BoxLayout(
+                padding=0,
+                spacing=0,
+                size_hint=(.8, 1),
+                orientation='horizontal')
+            box_right = BoxLayout(
+                padding=0,
+                spacing=0,
+                size_hint=(.1, 1),
+                orientation='horizontal')
             p_lbl_name = Label(text=unicode(d_ids[0]), width=10)
-            box_layout.add_widget(p_lbl_name)
+            box_left.add_widget(p_lbl_name)
             if d_ids[1] == 1:
                 lbl_text = '[color=009900][b]+[/b][/color]'
             elif d_ids[1] == 2:
@@ -418,14 +434,22 @@ class MyFace(StackLayout):
             elif d_ids[1] == 8:
                 lbl_text = '[color=FFFF00][b]-![/b][/color]'
             p_lbl_name = Label(text=lbl_text, markup=True, width=10)
-            box_layout.add_widget(p_lbl_name)
-            for k in d_ids[2:]:
+            box_left.add_widget(p_lbl_name)
+            k = d_ids[2]
+            lbl_text = unicode(k).replace(u' ', u'\n')
+            box_layout.height += 8 * lbl_text.count('\n')
+            p_lbl_name = Label(text=lbl_text, markup=True)
+            box_left.add_widget(p_lbl_name)
+            for k in d_ids[3:]:
                 if k == '-':
                     continue
                 lbl_text = unicode(k).replace(u' ', u'\n')
                 box_layout.height += 8 * lbl_text.count('\n')
                 p_lbl_name = Label(text=lbl_text, markup=True)
-                box_layout.add_widget(p_lbl_name)
+                box_mid.add_widget(p_lbl_name)
+            # todo: box_right
+            box_layout.add_widget(box_left)
+            box_layout.add_widget(box_mid)
             self.add_widget(box_layout)
 
     def prepare_report_remote(self, *args):
@@ -513,11 +537,12 @@ class AuthorizationPopUp(BoxLayout):
 
 class BackPanel(BoxLayout):
 
-    def __init__(self, pcs, navi_drawer, face, this_app, **kwargs):
+    def __init__(self, pcs, navi_drawer, face, this_app, p_bar, **kwargs):
         self.pcs = pcs
         self.navi_drawer = navi_drawer
         self.face = face
         self.this_app = this_app
+        self.p_bar = p_bar
         self.orientation = 'vertical'
         super(BackPanel, self).__init__(**kwargs)
         self.popup = Popup(title='Настройки',
@@ -568,18 +593,22 @@ class BackPanel(BoxLayout):
 
     def do_synchronization(self, *args):
         # разбить на потоки получилось внутри этих процедур:
+        self.navi_drawer.anim_to_state('closed')
+        self.pcs.set_progress = self.set_progress
         self.pcs.post_data()
         self.pcs.get_data()
-        self.navi_drawer.anim_to_state('closed')
         self.face.show_all_new()
 
     def exit_program(self, *largs):
         self.this_app.stop()
 
+    def set_progress(self, value):
+        self.p_bar.value = value
 
 class MyMoney(App):
     def build(self):
         pcs = PocketClass.Pockets('MyPythonMoney.db')
+        p_bar = ProgressBar()
         face = MyFace(pcs, size_hint_y=None)
         face.bind(minimum_height=face.setter('height'))
         # layout = GridLayout(cols=1, spacing=10, size_hint_y=None)
@@ -591,11 +620,18 @@ class MyMoney(App):
                                  size=Window.size,
                                  pos_hint={'center_x':.5, 'center_y':.5},
                                  do_scroll_x=False, do_scroll_y=True)
-        back_panel = BackPanel(pcs, navi_drawer, face, self)
+        back_panel = BackPanel(pcs, navi_drawer, face, p_bar, self)
 
         scroll_view.add_widget(face)
+        m_view = BoxLayout(
+            padding=0,
+            spacing=0,
+            size_hint=(1, None),
+            orientation='vertical')
+        m_view.add_widget(scroll_view)
+        m_view.add_widget(p_bar)
         navi_drawer.add_widget(back_panel)
-        navi_drawer.add_widget(scroll_view)
+        navi_drawer.add_widget(m_view)
         return navi_drawer
 
     def on_stop(self):

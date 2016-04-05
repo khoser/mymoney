@@ -151,6 +151,7 @@ class Pockets:
         }
         self.settings = {'URL': '', 'Authorization': ''}
         self.sr = PocketDB.ODataRequests(self.settings)
+        self.set_progress = None
         # self.parsing = False
 
     def _drop_db(self):
@@ -699,38 +700,47 @@ class Pockets:
             self.settings['Authorization'] = data[1]
 
     def parse_income_cur(self, req, data):
+        self.currency = []
         for i in data['value']:
             if 'IsFolder' in i and i['IsFolder'] == True:
                 continue
             self.set_cur(i['Description'], 1, '1', **i)
+        self.sr.check_progress()
         self.sr.event_get_actions()
         # self.currency.sort()
 
     def parse_income_in_items(self, req, data):
+        self.in_items = []
         for i in data['value']:
             if 'IsFolder' in i and i['IsFolder'] == True:
                 continue
             self.set_in_item(i['Description'], **i)
+        self.sr.check_progress()
         self.sr.event_get_actions()
         # self.in_items.sort()
 
     def parse_income_out_items(self, req, data):
+        self.out_items = []
         for i in data['value']:
             if 'IsFolder' in i and i['IsFolder'] == True:
                 continue
             self.set_out_item(i['Description'], **i)
+        self.sr.check_progress()
         self.sr.event_get_actions()
         # self.out_items.sort()
 
     def parse_income_contacts(self, req, data):
+        self.contacts = []
         for i in data['value']:
             if 'IsFolder' in i and i['IsFolder'] == True:
                 continue
             self.set_contact(i['Description'], **i)
+        self.sr.check_progress()
         self.sr.event_get_actions()
         # self.contacts.sort()
 
     def parse_income_pockets(self, req, data):
+        self.pockets = []
         for i in data['value']:
             if 'IsFolder' in i and i['IsFolder'] == True:
                 continue
@@ -739,10 +749,12 @@ class Pockets:
                                 i[u'Валюта_Key'],
                                 self.simple_objects['OneCurrency'])),
                             0, **i)
+        self.sr.check_progress()
         self.sr.event_get_actions()
         # self.pockets.sort()
 
     def parse_income_credits(self, req, data):
+        self.credits = []
         for i in data['value']:
             if 'IsFolder' in i and i['IsFolder'] == True:
                 continue
@@ -754,6 +766,7 @@ class Pockets:
                                 i[u'Контакт_Key'],
                                 self.simple_objects['OneContact']))
                             , 0, **i)
+        self.sr.check_progress()
         self.sr.event_get_actions()
         # self.credits.sort()
 
@@ -770,6 +783,7 @@ class Pockets:
                     i['ExtDimension1'], self.simple_objects['OneCredit'])
             if one_instance is not None:
                 one_instance.set_balance(i[u'ВалютнаяСуммаBalance'])
+        self.sr.check_progress()
         self.sr.event_get_actions()
 
     def parse_courses(self, req, data):
@@ -778,6 +792,7 @@ class Pockets:
                 i[u'Валюта_Key'], self.simple_objects['OneCurrency'])
             if one_instance is not None:
                 one_instance.set_course(i[u'Курс'], i[u'Кратность'])
+        self.sr.check_progress()
         self.sr.event_get_actions()
 
     def parsing_functions(self):
@@ -797,6 +812,7 @@ class Pockets:
             self.get_settings()
             self.sr.re_settings(self.settings)
             self.sr.num_get_actions = len(self.parsing_functions().items())
+            self.sr.max_get_actions = len(self.parsing_functions().items())
             self.sr.wait_for_get_and_recreate(self.db.recreate_refs, self)
             self.sr.get_refs(self.parsing_functions())
 
@@ -975,12 +991,12 @@ class Pockets:
             data_dict = self.reformat_data()
             if len(data_dict) > 0:
                 self.sr.num_post_actions = len(data_dict)
+                self.sr.max_post_actions = len(data_dict)
                 self.sr.wait_for_post_and_recreate(self.db.recreate_docs)
                 self.sr.post_docs(data_dict)
 
     def check_progress(self):
-        return (self.sr.num_get_actions + self.sr.num_post_actions,
-                self.sr.num_get_error_actions + self.sr.num_post_error_actions)
+        self.sr.check_progress()
 
     # TODO если БД не прокатит, то чтение инфы о кошельках и остатках из файлов
 
