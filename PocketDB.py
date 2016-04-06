@@ -815,6 +815,7 @@ class ODataRequests:
         self.__name__ = 'ODataRequests'
         self.fix_set = {'odata_url': '/odata/standard.odata/',
                         'json_format': '/?$format=json;odata=nometadata',
+                        'json_': '/?$format=json',
                         'post': '/Post?PostingModeOperational=false',
                         'journ_oper': 'AccountingRegister_' +
                                       urllib2.quote('ЖурналОпераций'),
@@ -849,7 +850,10 @@ class ODataRequests:
                         'doc_credit1_out': 'Document_' +
                                        urllib2.quote('МыВернулиДолг'),
                         'doc_credit2_out': 'Document_' +
-                                       urllib2.quote('МыДалиВДолг')}
+                                       urllib2.quote('МыДалиВДолг'),
+                        'filter': ("&$filter=Date ge datetime'%sT00:00:00' " +
+                                    "and Date le datetime'%sT00:00:00' " +
+                                    "and Posted eq true")}
         self.settings = settings
         self.max_get_actions = 0
         self.num_get_actions = 0
@@ -860,6 +864,9 @@ class ODataRequests:
         self.event_to_call_post = threading.Event()
         self.event_to_call_get = threading.Event()
         self.set_progress = None
+        self.num_docs_by_period = 0
+        self._docs_by_period_dict = {}
+        self._docs_by_period_call_back = None
 
     def re_settings(self, settings):
         self.settings = settings
@@ -1190,14 +1197,22 @@ class ODataRequests:
 
     def post_docs(self, data):
         for d in data:
-            if d['action'] == 1: self.post_action_in(d)
-            if d['action'] == 2: self.post_action_out(d)
-            if d['action'] == 3: self.post_action_between(d)
-            if d['action'] == 4: self.post_action_exchange(d)
-            if d['action'] == 5: self.post_action_credit1_in(d)
-            if d['action'] == 6: self.post_action_credit1_out(d)
-            if d['action'] == 7: self.post_action_credit2_in(d)
-            if d['action'] == 8: self.post_action_credit2_out(d)
+            if d['action'] == 1:
+                self.post_action_in(d)
+            if d['action'] == 2:
+                self.post_action_out(d)
+            if d['action'] == 3:
+                self.post_action_between(d)
+            if d['action'] == 4:
+                self.post_action_exchange(d)
+            if d['action'] == 5:
+                self.post_action_credit1_in(d)
+            if d['action'] == 6:
+                self.post_action_credit1_out(d)
+            if d['action'] == 7:
+                self.post_action_credit2_in(d)
+            if d['action'] == 8:
+                self.post_action_credit2_out(d)
 
     def post_writer(self, to_call):
         self.event_to_call_post.wait()  # wait for event
@@ -1230,3 +1245,32 @@ class ODataRequests:
         if self.set_progress is not None:
             self.set_progress(res[0])
         return res
+
+    def _docs_by_period(self, req, data):
+        self.num_docs_by_period -= 1
+        meta = data['odata.metadata'].split('#')[1]
+        for i in data['value']:
+            self._docs_by_period_dict[i['Date'] + i['Ref_Key']] = i
+            self._docs_by_period_dict[i['Date'] + i['Ref_Key']]['meta'] = meta
+        if self.num_docs_by_period == 0:
+            if self._docs_by_period_call_back is not None:
+                self._docs_by_period_call_back(self._docs_by_period_dict)
+
+    def _docs_by_period_error(self, req=None, result=None):
+        self.num_docs_by_period -= 1
+        if self.num_docs_by_period == 0:
+            if self._docs_by_period_call_back is not None:
+                self._docs_by_period_call_back(self._docs_by_period_dict)
+
+    def get_docs_by_period(self, begin_date, end_date, call_back=None):
+        if self.num_docs_by_period != 0:
+            return
+        self._docs_by_period_call_back = call_back
+        self.num_docs_by_period = 8
+        for k in self.fix_set:
+            if k[:4] == 'doc_':
+                url = (self.settings['URL'] + self.fix_set['odata_url'] +
+                       self.fix_set[k] + self.fix_set['json_'] +
+                       self.fix_set['filter'] % (begin_date, end_date))
+                self.get(url, on_success=self._docs_by_period,
+                         on_error=self._docs_by_period_error)

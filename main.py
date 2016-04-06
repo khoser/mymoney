@@ -10,6 +10,8 @@ from kivy.core.window import Window
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.progressbar import ProgressBar
 
+from datetime import datetime
+
 import PocketClass
 from garden.navigationdrawer import NavigationDrawer
 from kivy.app import App, Builder
@@ -468,11 +470,18 @@ class MyFace(StackLayout):
             box_layout.add_widget(box_mid)
             self.add_widget(box_layout)
 
-    def prepare_report_remote(self, *args):
+    def do_report_remote(self, data=None):
         drp_dwn_rep_text = unicode(self.drp_dwn_rep.spinner.text)
         self.prepare_report_view(s_text=drp_dwn_rep_text)
         self.previous_action_name = 'report_remote'
+        if data is not None:
+            pass
 
+    def prepare_report_remote(self, *args):
+        drp_dwn_rep_text = unicode(self.drp_dwn_rep.spinner.text)
+        if drp_dwn_rep_text == u'День':
+            begin_date = datetime.strftime(datetime.today(),'%Y-%M-%d')
+            # todo даты и тому подобное и вызов отчета.
 
 class DrpDwnList(BoxLayout):
 
