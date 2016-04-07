@@ -480,8 +480,16 @@ class MyFace(StackLayout):
     def prepare_report_remote(self, *args):
         drp_dwn_rep_text = unicode(self.drp_dwn_rep.spinner.text)
         if drp_dwn_rep_text == u'День':
-            begin_date = datetime.strftime(datetime.today(),'%Y-%M-%d')
-            # todo даты и тому подобное и вызов отчета.
+            begin_date = datetime.strftime(datetime.today(), '%Y-%M-%d')
+            end_date = datetime.strftime(
+                datetime.today() + datetime.timedelta(days=1), '%Y-%M-%d')
+        if drp_dwn_rep_text == u'Неделя'
+            begin_date = datetime.strftime(
+                datetime.today() + datetime.timedelta(days=datetime.weekday()),
+                '%Y-%M-%d')
+            end_date = datetime.strftime(datetime.today(), '%Y-%M-%d')
+        # todo даты и тому подобное и вызов отчета.
+
 
 class DrpDwnList(BoxLayout):
 
