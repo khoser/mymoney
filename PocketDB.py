@@ -1254,6 +1254,7 @@ class ODataRequests:
             self._docs_by_period_dict[i['Date'] + i['Ref_Key']]['meta'] = meta
         if self.num_docs_by_period == 0:
             if self._docs_by_period_call_back is not None:
+                self._docs_by_period_dict.keys().sort()
                 self._docs_by_period_call_back(self._docs_by_period_dict)
 
     def _docs_by_period_error(self, req=None, result=None):
