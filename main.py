@@ -11,6 +11,8 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.progressbar import ProgressBar
 
 from datetime import datetime
+from datetime import timedelta
+from datetime import date
 
 import PocketClass
 from garden.navigationdrawer import NavigationDrawer
@@ -476,19 +478,32 @@ class MyFace(StackLayout):
         self.previous_action_name = 'report_remote'
         if data is not None:
             pass
+    #     todo: вывод данных отчета
 
     def prepare_report_remote(self, *args):
         drp_dwn_rep_text = unicode(self.drp_dwn_rep.spinner.text)
+        end_date = datetime.strftime(
+            date.today() + timedelta(days=1), '%Y-%m-%d')
+        begin_date = None
         if drp_dwn_rep_text == u'День':
-            begin_date = datetime.strftime(datetime.today(), '%Y-%M-%d')
-            end_date = datetime.strftime(
-                datetime.today() + datetime.timedelta(days=1), '%Y-%M-%d')
-        if drp_dwn_rep_text == u'Неделя'
+            begin_date = datetime.strftime(date.today(), '%Y-%m-%d')
+        if drp_dwn_rep_text == u'Неделя':
             begin_date = datetime.strftime(
-                datetime.today() + datetime.timedelta(days=datetime.weekday()),
-                '%Y-%M-%d')
-            end_date = datetime.strftime(datetime.today(), '%Y-%M-%d')
-        # todo даты и тому подобное и вызов отчета.
+                datetime.today() - timedelta(
+                    days=datetime.weekday(date.today())),
+                '%Y-%m-%d')
+        if drp_dwn_rep_text == u'Месяц':
+            begin_date = datetime.strftime(
+                datetime.today() - timedelta(days=datetime.today().day-1),
+                '%Y-%m-%d')
+        if drp_dwn_rep_text == u'Год':
+            begin_date = datetime.strftime(date(datetime.today().year, 1, 1),
+                                           '%Y-%m-%d')
+        if begin_date is not None:
+            self.pcs.sr.get_docs_by_period(begin_date, end_date,
+                                           self.do_report_remote)
+        else:
+            self.do_report_remote()
 
 
 class DrpDwnList(BoxLayout):
