@@ -477,8 +477,42 @@ class MyFace(StackLayout):
         self.prepare_report_view(s_text=drp_dwn_rep_text)
         self.previous_action_name = 'report_remote'
         if data is not None:
-            pass
-    #     todo: вывод данных отчета
+            for k in data:
+                i = data[k]
+                box_layout = BoxLayout(
+                    padding=0,
+                    spacing=0,
+                    size_hint=(1, None),
+                    height=35,
+                    orientation='horizontal')
+                lbl = Label(text=i[u'Date'].replace('T', '\n'))
+                box_layout.add_widget(lbl)
+                lbl = Label(
+                    text=i[u'ОписаниеОперации'].replace(']: ', ']:\n').replace(
+                        u'] в ', u']\nв ').replace(u'] на ', u']\nна '))
+                box_layout.add_widget(lbl)
+                if i['meta'] == u'Document_Доход':
+                    lbl = Label(text='%s' % i[u'СуммаОперации'])
+                elif i['meta'] == u'Document_Расход':
+                    lbl = Label(text='%s' % i[u'СуммаОплаты'])
+                elif i['meta'] == u'Document_НамВернулиДолг':
+                    lbl = Label(text='%s' % i[u'СуммаПолучено'])
+                elif i['meta'] == u'Document_МыВзялиВДолг':
+                    lbl = Label(text='%s' % i[u'СуммаПолучено'])
+                elif i['meta'] == u'Document_Перемещение':
+                    lbl = Label(text='%s' % i[u'СуммаОперации'])
+                elif i['meta'] == u'Document_МыВернулиДолг':
+                    lbl = Label(text='%s (%s + %s)' %
+                                     (i[u'СуммаОперации'],
+                                      i[u'СуммаКредитаВВалютеКредита'],
+                                      i[u'СуммаПроцентовВВалютеКредита']))
+                elif i['meta'] == u'Document_МыДалиВДолг':
+                    lbl = Label(text='%s' % i[u'СуммаВыдано'])
+                elif i['meta'] == u'Document_ОбменВалюты':
+                    lbl = Label(text='%s => %s' % (i[u'СуммаВыдано'],
+                                                   i[u'СуммаПолучено']))
+                box_layout.add_widget(lbl)
+                self.add_widget(box_layout)
 
     def prepare_report_remote(self, *args):
         drp_dwn_rep_text = unicode(self.drp_dwn_rep.spinner.text)

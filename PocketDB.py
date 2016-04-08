@@ -851,9 +851,11 @@ class ODataRequests:
                                        urllib2.quote('МыВернулиДолг'),
                         'doc_credit2_out': 'Document_' +
                                        urllib2.quote('МыДалиВДолг'),
-                        'filter': ("&$filter=Date ge datetime'%sT00:00:00' " +
-                                    "and Date le datetime'%sT00:00:00' " +
+                        'filter': ("&$filter=Date ge datetime'%s1T00:00:00' " +
+                                    "and Date le datetime'%s2T00:00:00' " +
                                     "and Posted eq true")}
+        self.fix_set['filter'] = (self.fix_set['filter']
+                                  .replace(' ', '%20').replace("'", '%27'))
         self.settings = settings
         self.max_get_actions = 0
         self.num_get_actions = 0
@@ -1272,6 +1274,11 @@ class ODataRequests:
             if k[:4] == 'doc_':
                 url = (self.settings['URL'] + self.fix_set['odata_url'] +
                        self.fix_set[k] + self.fix_set['json_'] +
-                       self.fix_set['filter'] % (begin_date, end_date))
+                       self.fix_set['filter'].replace(
+                           '%s1', begin_date
+                       ).replace(
+                           '%s2', end_date
+                       ))
+                # print(url)
                 self.get(url, on_success=self._docs_by_period,
                          on_error=self._docs_by_period_error)
