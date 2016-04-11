@@ -4,10 +4,8 @@
 """
 Интерфейсная часть
 """
-import copy
 import re
 from kivy.core.window import Window
-from kivy.uix.gridlayout import GridLayout
 from kivy.uix.progressbar import ProgressBar
 
 from datetime import datetime
@@ -23,12 +21,9 @@ from kivy.uix.stacklayout import StackLayout
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 from kivy.uix.button import Button
-from kivy.properties import (NumericProperty, ObjectProperty, StringProperty,
-    ListProperty)
-from kivy.graphics import Rectangle, Color, Canvas
+from kivy.properties import StringProperty
 from kivy.uix.spinner import Spinner
 from kivy.uix.textinput import TextInput
-from functools import partial
 
 
 class MyFace(StackLayout):
@@ -148,7 +143,7 @@ class MyFace(StackLayout):
             self.comment = InptData('Комментарий:')
             self.add_widget(self.comment)
             self.btn = Button(text='Учесть', size_hint=(1, None), height=50,
-                              on_press=partial(self.do_action_in))
+                              on_press=self.do_action_in)
             self.add_widget(self.btn)
         elif action_name == 'Out':
             p_ar = [unicode(i) for i in self.pcs.pockets]
@@ -166,7 +161,7 @@ class MyFace(StackLayout):
             self.comment = InptData('Комментарий:')
             self.add_widget(self.comment)
             self.btn = Button(text='Учесть', size_hint=(1, None), height=50,
-                              on_press=partial(self.do_action_out))
+                              on_press=self.do_action_out)
             self.add_widget(self.btn)
         elif action_name == 'Between':
             p_ar = [unicode(i) for i in self.pcs.pockets]
@@ -180,7 +175,7 @@ class MyFace(StackLayout):
             self.comment = InptData('Комментарий:')
             self.add_widget(self.comment)
             self.btn = Button(text='Учесть', size_hint=(1, None), height=50,
-                              on_press=partial(self.do_action_between))
+                              on_press=self.do_action_between)
             self.add_widget(self.btn)
         elif action_name == 'Exchange':
             p_ar = [unicode(i) for i in self.pcs.pockets]
@@ -196,7 +191,7 @@ class MyFace(StackLayout):
             self.comment = InptData('Комментарий:')
             self.add_widget(self.comment)
             self.btn = Button(text='Учесть', size_hint=(1, None), height=50,
-                              on_press=partial(self.do_action_exchange))
+                              on_press=self.do_action_exchange)
             self.add_widget(self.btn)
         elif action_name == 'Credit1In':
             pass #todo обработка интерфейса и работы с кредитами
@@ -609,7 +604,7 @@ class AuthorizationPopUp(BoxLayout):
         self.text_input3 = TextInput(password=True, text=u'')
         self.add_widget(self.text_input3)
         button = Button(height=40, text='Save', size_hint=(1, None),
-                        on_press=partial(self.save_and_hide))
+                        on_press=self.save_and_hide)
         self.add_widget(button)
 
     def save_and_hide(self, *args):
@@ -650,7 +645,7 @@ class BackPanel(BoxLayout):
         button4 = Button(
             text='Синхронизировать', size_hint=(1, None),
             #height=50,
-            on_press=partial(self.do_synchronization)
+            on_press=self.do_synchronization
         )
         button5 = Button(
             text='Выход', size_hint=(1, None),
