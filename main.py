@@ -583,12 +583,13 @@ class InptData(BoxLayout):
         self.text_input = inp_type(height=20, text=u'', multiline=False)
         self.add_widget(self.text_input)
 
+
 class AuthorizationPopUp(BoxLayout):
 
-    def __init__(self, pcs, popup, **kwargs):
+    def __init__(self, pcs, b_panel, **kwargs):
         self.orientation = 'vertical'
         self.pcs = pcs
-        self.popup = popup
+        self.b_panel = b_panel
         super(AuthorizationPopUp, self).__init__(**kwargs)
         self.pcs.get_settings()
         label1 = Label(text='URL:')
@@ -611,7 +612,7 @@ class AuthorizationPopUp(BoxLayout):
         self.pcs.set_settings(self.text_input1.text,
                               self.text_input2.text,
                               self.text_input3.text)
-        self.popup.popup.dismiss()
+        self.b_panel.popup.dismiss()
 
 
 class BackPanel(BoxLayout):
@@ -699,7 +700,7 @@ class MyMoney(App):
                                  size=Window.size,
                                  pos_hint={'center_x':.5, 'center_y':.5},
                                  do_scroll_x=False, do_scroll_y=True)
-        back_panel = BackPanel(pcs, navi_drawer, face, p_bar, self)
+        back_panel = BackPanel(pcs, navi_drawer, face, self, p_bar)
 
         scroll_view.add_widget(face)
         m_view = BoxLayout(
