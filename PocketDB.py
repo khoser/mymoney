@@ -10,7 +10,6 @@ import threading
 import urllib2
 import json
 from kivy.network.urlrequest import UrlRequest
-from time import sleep
 
 
 def get_type(val):

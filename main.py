@@ -13,7 +13,7 @@ from datetime import timedelta
 from datetime import date
 
 import PocketClass
-from garden.navigationdrawer import NavigationDrawer
+from navigationdrawer import NavigationDrawer
 from kivy.app import App, Builder
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.boxlayout import BoxLayout
