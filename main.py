@@ -540,9 +540,15 @@ class DrpDwnList(BoxLayout):
     def __init__(self, caption, values, action=None, s_text='..select..',
                  **kwargs):
         self.values = values
-        self.caption = caption
         self.action = action
-        super(DrpDwnList, self).__init__(**kwargs)
+        super(DrpDwnList, self).__init__(padding=0, spacing=0,
+                                         size_hint=(1,None),
+                                         orientation='vertical', **kwargs)
+        lbl = Label(
+            # height: 10
+            # font_size: 12
+            size_hint=(1, .5), text=caption)
+        self.add_widget(lbl)
         self.spinner = Spinner(
             # default value shown
             text=s_text,
@@ -578,8 +584,12 @@ class FloatInput(TextInput):
 class InptData(BoxLayout):
 
     def __init__(self, caption, inp_type=TextInput, **kwargs):
-        self.caption = caption
-        super(InptData, self).__init__(**kwargs)
+        super(InptData, self).__init__(padding=0, spacing=0, size_hint=(1,None),
+                                       orientation='vertical', **kwargs)
+        lbl = Label(height=10,
+                    # font_size: 12,
+                    text=caption)
+        self.add_widget(lbl)
         self.text_input = inp_type(height=20, text=u'', multiline=False)
         self.add_widget(self.text_input)
 
@@ -689,7 +699,8 @@ class MyMoney(App):
     def build(self):
         pcs = PocketClass.Pockets('MyPythonMoney.db')
         p_bar = ProgressBar()
-        face = MyFace(pcs, size_hint_y=None)
+        face = MyFace(pcs, size_hint_y=None, orientation='lr-tb', padding=10,
+                      spacing=5)
         face.bind(minimum_height=face.setter('height'))
         # layout = GridLayout(cols=1, spacing=10, size_hint_y=None)
         # Make sure the height is such that there is something to scroll.
@@ -719,5 +730,5 @@ class MyMoney(App):
         pass
 
 if __name__ == '__main__':
-    Builder.load_file('main.kv')
+    # Builder.load_file('main.kv')
     MyMoney().run()
